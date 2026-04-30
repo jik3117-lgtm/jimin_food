@@ -822,44 +822,6 @@
             border-color: #667eea;
         }
 
-/* 메인 탭 디자인 추가 */
-        .main-tabs-container {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 25px;
-            background: white;
-            padding: 10px;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        .main-tab-btn {
-            flex: 1;
-            padding: 15px;
-            border: none;
-            background: transparent;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #666;
-            transition: all 0.3s;
-        }
-        .main-tab-btn.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
-        }
-        .owner-badge {
-            font-size: 0.75rem;
-            padding: 3px 6px;
-            border-radius: 4px;
-            margin-right: 5px;
-            font-weight: normal;
-        }
-        .badge-groom { background: #e3f2fd; color: #1565c0; }
-        .badge-bride { background: #fce4ec; color: #c2185b; }
-        .badge-combined { background: #f5f5f5; color: #616161; }
-        
         /* Mobile Responsive Styles */
         @media (max-width: 768px) {
             body {
@@ -1186,14 +1148,6 @@
             </div>
         </header>
 
-<!-- 여기에 메인 탭 코드를 추가합니다 -->
-        <div class="main-tabs-container">
-            <button class="main-tab-btn active" onclick="setMainTab('combined')" id="main-tab-combined">👫 통합 보기</button>
-            <button class="main-tab-btn" onclick="setMainTab('groom')" id="main-tab-groom">👦 신랑 입력</button>
-            <button class="main-tab-btn" onclick="setMainTab('bride')" id="main-tab-bride">👧 신부 입력</button>
-        </div>
-        <!-- 여기까지 -->
-        
         <!-- Total Summary Section -->
         <div class="total-summary">
             <h2>📊 월별 총 요약</h2>
@@ -1682,18 +1636,6 @@ function createJsonResponse(obj) {
             savings: false
         };
 
-        let currentOwnerTab = 'combined'; 
-
-        function setMainTab(tabName) {
-            currentOwnerTab = tabName;
-            
-            // 탭 스타일 활성화/비활성화
-            document.querySelectorAll('.main-tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`main-tab-${tabName}`).classList.add('active');
-            
-            renderAll(); // 화면 새로고침
-        }
-        
         function getCurrentMonthKey() {
             const now = new Date();
             return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -1864,8 +1806,7 @@ function createJsonResponse(obj) {
             currentData[type].push({
                 id: generateId(),
                 name: name,
-                amount: amount,
-                owner: currentOwnerTab // 현재 탭 정보('groom', 'bride', 'combined')를 함께 저장합니다.
+                amount: amount
             });
             
             selectEl.value = '';
@@ -1963,24 +1904,12 @@ function createJsonResponse(obj) {
         }
 
         function calculateTotals(currentData) {
-            // 현재 탭에 맞는 데이터만 계산 (통합이거나, 본인 것이거나, 옛날 데이터)
-            const filterFn = item => currentOwnerTab === 'combined' || item.owner === currentOwnerTab || !item.owner;
-
-            const incomeTotal = currentData.income.filter(filterFn).reduce((sum, item) => sum + item.amount, 0);
-            const fixedTotal = currentData.fixed.filter(filterFn).reduce((sum, item) => sum + item.amount, 0);
-            const loanTotal = currentData.loan.filter(filterFn).reduce((sum, item) => sum + item.amount, 0);
-            const variableTotal = currentData.variable.filter(filterFn).reduce((sum, item) => sum + item.amount, 0);
-            const savingsTotal = currentData.savings.filter(filterFn).reduce((sum, item) => sum + item.amount, 0);
-            
-            // 용돈은 각자 탭에 맞게 따로 계산
-            let allowanceTotal = 0;
-            if (currentOwnerTab === 'combined') {
-                allowanceTotal = currentData.husbandAllowance + currentData.wifeAllowance;
-            } else if (currentOwnerTab === 'groom') {
-                allowanceTotal = currentData.husbandAllowance;
-            } else if (currentOwnerTab === 'bride') {
-                allowanceTotal = currentData.wifeAllowance;
-            }
+            const incomeTotal = currentData.income.reduce((sum, item) => sum + item.amount, 0);
+            const fixedTotal = currentData.fixed.reduce((sum, item) => sum + item.amount, 0);
+            const loanTotal = currentData.loan.reduce((sum, item) => sum + item.amount, 0);
+            const variableTotal = currentData.variable.reduce((sum, item) => sum + item.amount, 0);
+            const allowanceTotal = currentData.husbandAllowance + currentData.wifeAllowance;
+            const savingsTotal = currentData.savings.reduce((sum, item) => sum + item.amount, 0);
             
             const totalExpense = fixedTotal + loanTotal + variableTotal + allowanceTotal + savingsTotal;
             const balance = incomeTotal - totalExpense;
@@ -1991,17 +1920,16 @@ function createJsonResponse(obj) {
             }
             
             return {
-                incomeTotal, fixedTotal, loanTotal, variableTotal,
-                allowanceTotal, savingsTotal, totalExpense, balance, savingsRate
+                incomeTotal,
+                fixedTotal,
+                loanTotal,
+                variableTotal,
+                allowanceTotal,
+                savingsTotal,
+                totalExpense,
+                balance,
+                savingsRate
             };
-        }
-
-        // 통합 화면에서 누구 항목인지 배지로 보여주는 기능
-        function getOwnerBadge(owner) {
-            if (currentOwnerTab !== 'combined') return ''; 
-            if (owner === 'groom') return '<span class="owner-badge badge-groom">신랑</span>';
-            if (owner === 'bride') return '<span class="owner-badge badge-bride">신부</span>';
-            return '<span class="owner-badge badge-combined">공통</span>';
         }
 
         function renderList(type, containerId, totalId) {
@@ -2011,60 +1939,6 @@ function createJsonResponse(obj) {
             
             container.innerHTML = '';
             let total = 0;
-            
-            currentData[type].forEach(item => {
-                // 다른 사람의 탭 화면에서는 그리지 않고 건너뜀
-                if (currentOwnerTab !== 'combined' && item.owner && item.owner !== currentOwnerTab) return;
-                
-                total += item.amount;
-                const div = document.createElement('div');
-                div.className = 'item';
-                div.innerHTML = `
-                    <div class="item-info">
-                        <div class="item-name">${getOwnerBadge(item.owner)}${item.name}</div>
-                    </div>
-                    <div class="item-amount">${formatWon(item.amount)}</div>
-                    <div class="item-actions">
-                        <button class="btn btn-edit" onclick="editItem('${type}', '${item.id}')">수정</button>
-                        <button class="btn btn-danger" onclick="removeItem('${type}', '${item.id}')">삭제</button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-            
-            totalEl.textContent = formatWon(total);
-            return total;
-        }
-
-        function renderSavingsList() {
-            const container = document.getElementById('savingsList');
-            const totalEl = document.getElementById('savingsTotal');
-            const currentData = getCurrentData();
-            
-            container.innerHTML = '';
-            let total = 0;
-            
-            currentData.savings.forEach(item => {
-                if (currentOwnerTab !== 'combined' && item.owner && item.owner !== currentOwnerTab) return;
-
-                total += item.amount;
-                const div = document.createElement('div');
-                div.className = 'savings-item';
-                div.innerHTML = `
-                    <div class="savings-item-info">
-                        <div class="savings-item-name">${getOwnerBadge(item.owner)}${item.name}</div>
-                    </div>
-                    <div class="savings-item-amount">${formatWon(item.amount)}</div>
-                    <div class="savings-item-actions">
-                        <button class="btn btn-edit" onclick="editItem('savings', '${item.id}')">수정</button>
-                        <button class="btn btn-danger" onclick="removeItem('savings', '${item.id}')">삭제</button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-            
-            totalEl.textContent = formatWon(total);
-        }
             
 currentData[type].forEach(item => {
                 total += item.amount;
