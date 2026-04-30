@@ -289,6 +289,18 @@
             background: #d32f2f;
         }
 
+        .btn-edit {
+            background: #4CAF50;
+            color: white;
+            padding: 5px 10px;
+            width: auto;
+            font-size: 0.8rem;
+        }
+
+        .btn-edit:hover {
+            background: #388E3C;
+        }
+
         .item-list {
             margin-top: 20px;
             max-height: 300px;
@@ -1814,6 +1826,33 @@ function createJsonResponse(obj) {
             renderAll();
         }
 
+        function editItem(type, id) {
+            const currentData = getCurrentData();
+            // 수정할 항목 찾기
+            const item = currentData[type].find(item => item.id === id);
+            
+            if (!item) return;
+            
+            // 기존 금액을 보여주며 새로운 금액 입력 받기
+            const newAmountStr = prompt(`[${item.name}] 항목의 새로운 금액을 입력해주세요.\n(숫자만 입력하거나 콤마를 포함해도 됩니다)`, item.amount);
+            
+            // 사용자가 '취소'를 누른 경우 종료
+            if (newAmountStr === null) return; 
+            
+            // 입력받은 값을 숫자로 변환 (기존 parseInput 함수 활용)
+            const newAmount = parseInput(newAmountStr);
+            
+            if (isNaN(newAmount) || newAmount <= 0) {
+                alert('올바른 금액을 입력해주세요.');
+                return;
+            }
+            
+            // 새 금액으로 업데이트 후 저장 및 화면 새로고침
+            item.amount = newAmount;
+            saveData();
+            renderAll();
+        }
+
         function setAllowance(person) {
             const input = document.getElementById(`${person}Allowance`);
             const amount = parseInput(input.value);
@@ -1901,7 +1940,7 @@ function createJsonResponse(obj) {
             container.innerHTML = '';
             let total = 0;
             
-            currentData[type].forEach(item => {
+currentData[type].forEach(item => {
                 total += item.amount;
                 const div = document.createElement('div');
                 div.className = 'item';
@@ -1911,6 +1950,8 @@ function createJsonResponse(obj) {
                     </div>
                     <div class="item-amount">${formatWon(item.amount)}</div>
                     <div class="item-actions">
+                        <!-- 아래 한 줄(수정 버튼)을 추가하세요 -->
+                        <button class="btn btn-edit" onclick="editItem('${type}', '${item.id}')">수정</button>
                         <button class="btn btn-danger" onclick="removeItem('${type}', '${item.id}')">삭제</button>
                     </div>
                 `;
@@ -1971,7 +2012,7 @@ function createJsonResponse(obj) {
             container.innerHTML = '';
             let total = 0;
             
-            currentData.savings.forEach(item => {
+currentData.savings.forEach(item => {
                 total += item.amount;
                 const div = document.createElement('div');
                 div.className = 'savings-item';
@@ -1981,6 +2022,8 @@ function createJsonResponse(obj) {
                     </div>
                     <div class="savings-item-amount">${formatWon(item.amount)}</div>
                     <div class="savings-item-actions">
+                        <!-- 아래 한 줄(수정 버튼)을 추가하세요 -->
+                        <button class="btn btn-edit" onclick="editItem('savings', '${item.id}')">수정</button>
                         <button class="btn btn-danger" onclick="removeItem('savings', '${item.id}')">삭제</button>
                     </div>
                 `;
