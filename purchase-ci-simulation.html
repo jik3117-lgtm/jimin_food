@@ -1,0 +1,1955 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>구매 CI 율 시뮬레이션</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* ================================================================
+           Design tokens — OpenSurvey-inspired: vivid blue on clean white,
+           aqua / peach accents, bold type, generous rounding
+           ================================================================ */
+        :root {
+            --brand:        #0b5cff;
+            --brand-deep:   #0645bd;
+            --brand-soft:   #eef4ff;
+            --brand-ring:   rgba(11, 92, 255, 0.18);
+            --aqua:         #00b8ad;
+            --aqua-soft:    #e7faf8;
+            --peach:        #ff8a5c;
+            --peach-soft:   #fff1ea;
+
+            --pos:          #0b5cff;   /* CI 양수 (개선) */
+            --neg:          #e34948;   /* CI 음수 (악화) */
+            --pos-soft:     #eef4ff;
+            --neg-soft:     #fdeeee;
+
+            --bg:           #f5f7fb;
+            --card:         #ffffff;
+            --ink:          #101828;
+            --ink-2:        #475467;
+            --muted:        #98a2b3;
+            --line:         #e7ebf3;
+            --line-strong:  #d5dbe7;
+
+            --radius-lg:    20px;
+            --radius-md:    12px;
+            --radius-sm:    9px;
+
+            --shadow-card:  0 1px 2px rgba(16, 24, 40, 0.04), 0 10px 30px rgba(16, 24, 40, 0.05);
+            --shadow-pop:   0 12px 32px rgba(16, 24, 40, 0.14);
+
+            --font: "Pretendard", "Pretendard Variable", -apple-system, BlinkMacSystemFont,
+                    "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            font-size: 15px;
+            line-height: 1.55;
+        }
+
+        .page {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 0 28px 64px;
+        }
+
+        /* ---------------- Top bar & hero ---------------- */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 0 12px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 17px;
+            letter-spacing: -0.01em;
+        }
+
+        .brand-mark {
+            width: 30px;
+            height: 30px;
+            border-radius: 9px;
+            background: var(--brand);
+            display: grid;
+            place-items: center;
+            color: #fff;
+            flex: none;
+        }
+
+        .brand-mark svg { display: block; }
+
+        .brand small {
+            font-weight: 600;
+            color: var(--muted);
+            font-size: 12px;
+            margin-left: 2px;
+        }
+
+        .topbar-badges { display: flex; gap: 8px; }
+
+        .pill-badge {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 999px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            color: var(--ink-2);
+        }
+
+        .pill-badge.accent { background: var(--aqua-soft); border-color: transparent; color: #067f78; }
+
+        .hero {
+            padding: 30px 0 26px;
+        }
+
+        .hero h1 {
+            font-size: clamp(26px, 3.4vw, 38px);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.22;
+        }
+
+        .hero h1 .hl {
+            color: var(--brand);
+            position: relative;
+        }
+
+        .hero p {
+            margin-top: 8px;
+            color: var(--ink-2);
+            font-size: 15px;
+            max-width: 640px;
+        }
+
+        /* ---------------- Cards ---------------- */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+        }
+
+        .card + .card { margin-top: 18px; }
+
+        .card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 20px 24px 0;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--brand);
+            flex: none;
+        }
+
+        /* ---------------- Segmented controls ---------------- */
+        .segmented {
+            display: inline-flex;
+            background: #eceff5;
+            border-radius: 999px;
+            padding: 4px;
+            gap: 2px;
+        }
+
+        .segmented button {
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--ink-2);
+            padding: 8px 18px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+            white-space: nowrap;
+        }
+
+        .segmented button:hover:not(.active) { color: var(--ink); }
+
+        .segmented button.active {
+            background: var(--card);
+            color: var(--brand);
+            box-shadow: 0 1px 3px rgba(16, 24, 40, 0.12);
+        }
+
+        .mode-row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 18px;
+        }
+
+        /* ---------------- Upload ---------------- */
+        .upload-card { padding: 24px; }
+
+        .upload-area {
+            border: 2px dashed var(--line-strong);
+            border-radius: var(--radius-md);
+            background: #fafbfe;
+            padding: 44px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+        }
+
+        .upload-area:hover {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--brand);
+            background: var(--brand-soft);
+            transform: scale(1.01);
+            box-shadow: 0 0 0 4px var(--brand-ring);
+        }
+
+        .upload-icon {
+            width: 52px; height: 52px;
+            margin: 0 auto 14px;
+            border-radius: 16px;
+            background: var(--brand-soft);
+            color: var(--brand);
+            display: grid;
+            place-items: center;
+        }
+
+        .upload-area .title {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .upload-area .desc {
+            margin-top: 6px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .upload-note {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 14px;
+            font-size: 12.5px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 999px;
+        }
+
+        .upload-note.warn { background: var(--peach-soft); color: #c25a2a; }
+        .upload-note.ok   { background: var(--aqua-soft);  color: #067f78; }
+
+        .file-input { display: none; }
+
+        .btn-row {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .btn {
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            border-radius: 999px;
+            padding: 11px 22px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, color 0.15s ease;
+            letter-spacing: -0.01em;
+        }
+
+        .btn:active { transform: translateY(1px); }
+
+        .btn-primary {
+            background: var(--brand);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: var(--brand-deep);
+            box-shadow: 0 6px 18px var(--brand-ring);
+        }
+
+        .btn-ghost {
+            background: var(--card);
+            color: var(--ink-2);
+            border-color: var(--line-strong);
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+            background: var(--brand-soft);
+        }
+
+        .btn-aqua {
+            background: var(--aqua);
+            color: #fff;
+        }
+
+        .btn-aqua:hover {
+            filter: brightness(0.94);
+            box-shadow: 0 6px 18px rgba(0, 184, 173, 0.25);
+        }
+
+        /* ---------------- Status / loading ---------------- */
+        .status-message {
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            font-size: 13.5px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .status-error   { background: var(--neg-soft); color: #b02a2a; border: 1px solid #f6cccc; }
+        .status-success { background: var(--aqua-soft); color: #067f78; border: 1px solid #bdeeea; }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            padding: 48px 0;
+            color: var(--ink-2);
+            font-weight: 600;
+        }
+
+        .spinner {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            border: 3px solid var(--brand-soft);
+            border-top-color: var(--brand);
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ---------------- KPI stat tiles ---------------- */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .kpi {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 20px 22px;
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+        }
+
+        .kpi-icon {
+            width: 40px; height: 40px;
+            flex: none;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+        }
+
+        .kpi-icon.blue  { background: var(--brand-soft); color: var(--brand); }
+        .kpi-icon.aqua  { background: var(--aqua-soft);  color: #068f86; }
+        .kpi-icon.peach { background: var(--peach-soft); color: #d96a35; }
+        .kpi-icon.gray  { background: #f1f3f8;           color: var(--ink-2); }
+
+        .kpi h3 {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: var(--muted);
+            letter-spacing: 0.01em;
+        }
+
+        .kpi .value {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-top: 2px;
+            font-variant-numeric: tabular-nums;
+            word-break: break-all;
+        }
+
+        .kpi .value.positive { color: var(--pos); }
+        .kpi .value.negative { color: var(--neg); }
+
+        /* ---------------- Filters ---------------- */
+        .filter-card { padding: 20px 24px 22px; }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            align-items: end;
+        }
+
+        .filter-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--ink-2);
+            margin-bottom: 6px;
+        }
+
+        select {
+            width: 100%;
+            font-family: inherit;
+            font-size: 13.5px;
+            color: var(--ink);
+            padding: 9px 32px 9px 12px;
+            border: 1px solid var(--line-strong);
+            border-radius: var(--radius-sm);
+            background: var(--card) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2398a2b3' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 11px center;
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        select:hover { border-color: var(--brand); }
+
+        select:focus {
+            outline: none;
+            border-color: var(--brand);
+            box-shadow: 0 0 0 3px var(--brand-ring);
+        }
+
+        /* ---------------- Layout: main + pivot ---------------- */
+        .main-container {
+            display: flex;
+            gap: 18px;
+            align-items: flex-start;
+        }
+
+        .main-content { flex: 1; min-width: 0; }
+
+        /* ---------------- Tabs ---------------- */
+        .data-card { padding: 20px 24px 24px; }
+
+        .tabs {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--line);
+            margin-bottom: 4px;
+        }
+
+        .tab {
+            font-family: inherit;
+            font-size: 13.5px;
+            font-weight: 700;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--ink-2);
+            padding: 8px 16px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .tab:hover:not(.active) { background: #f1f3f8; color: var(--ink); }
+
+        .tab.active {
+            background: var(--brand);
+            color: #fff;
+        }
+
+        /* ---------------- Tables ---------------- */
+        .table-container {
+            overflow: auto;
+            max-height: 640px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--line);
+            margin-top: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 13px;
+        }
+
+        th, td {
+            padding: 11px 14px;
+            text-align: right;
+            border-bottom: 1px solid var(--line);
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+
+        th {
+            background: #f8fafd;
+            font-weight: 700;
+            font-size: 12px;
+            color: var(--ink-2);
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+
+        th:first-child, td:first-child {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            z-index: 1;
+            background: var(--card);
+            font-weight: 600;
+        }
+
+        th:first-child { z-index: 3; background: #f8fafd; }
+
+        tbody tr:last-child td { border-bottom: none; }
+
+        tbody tr:hover td { background: var(--brand-soft); }
+
+        .ci-positive { color: var(--pos); font-weight: 800; }
+        .ci-negative { color: var(--neg); font-weight: 800; }
+
+        .table-note {
+            margin-top: 10px;
+            font-size: 12.5px;
+            color: var(--muted);
+        }
+
+        .empty-note {
+            padding: 40px 0;
+            text-align: center;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        /* ---------------- Charts (diverging bars) ---------------- */
+        .chart-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .chart-box {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            padding: 18px 20px 20px;
+            background: #fdfdfe;
+            min-width: 0;
+        }
+
+        .chart-box h4 {
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            margin-bottom: 4px;
+        }
+
+        .chart-legend {
+            display: flex;
+            gap: 14px;
+            margin-bottom: 14px;
+            font-size: 11.5px;
+            font-weight: 700;
+            color: var(--ink-2);
+        }
+
+        .chart-legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .chart-legend i {
+            width: 10px; height: 10px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+
+        .chart-legend .sw-pos { background: var(--pos); }
+        .chart-legend .sw-neg { background: var(--neg); }
+
+        .bar-chart { display: flex; flex-direction: column; gap: 8px; }
+
+        .bar-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 2px 0;
+            border-radius: 6px;
+            cursor: default;
+        }
+
+        .bar-item:hover { background: rgba(11, 92, 255, 0.05); }
+
+        .bar-label {
+            width: 118px;
+            flex: none;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--ink-2);
+            text-align: right;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .bar-track {
+            flex: 1;
+            display: flex;
+            height: 18px;
+            position: relative;
+            min-width: 0;
+        }
+
+        .bar-track::before {
+            /* zero baseline */
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: -3px;
+            bottom: -3px;
+            width: 1.5px;
+            background: var(--line-strong);
+        }
+
+        .bar-half {
+            width: 50%;
+            position: relative;
+        }
+
+        .bar {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            min-width: 2px;
+            transition: width 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+        }
+
+        .bar.positive {
+            left: 0;
+            background: var(--pos);
+            border-radius: 0 4px 4px 0;
+        }
+
+        .bar.negative {
+            right: 0;
+            background: var(--neg);
+            border-radius: 4px 0 0 4px;
+        }
+
+        .bar-value {
+            width: 72px;
+            flex: none;
+            font-size: 12px;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* tooltip */
+        .viz-tooltip {
+            position: fixed;
+            z-index: 50;
+            pointer-events: none;
+            background: var(--ink);
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px 13px;
+            font-size: 12px;
+            line-height: 1.5;
+            box-shadow: var(--shadow-pop);
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity 0.12s ease, transform 0.12s ease;
+            max-width: 280px;
+        }
+
+        .viz-tooltip.show { opacity: 1; transform: translateY(0); }
+
+        .viz-tooltip .tt-title { font-weight: 800; margin-bottom: 3px; }
+        .viz-tooltip .tt-row { display: flex; justify-content: space-between; gap: 16px; }
+        .viz-tooltip .tt-row b { font-variant-numeric: tabular-nums; font-weight: 700; }
+
+        /* ---------------- Pivot panel ---------------- */
+        .pivot-panel {
+            width: 330px;
+            flex: none;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 22px;
+            position: sticky;
+            top: 18px;
+        }
+
+        .pivot-panel h3 {
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+            border-bottom: 2px solid var(--brand);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pivot-config label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--ink-2);
+            margin: 12px 0 5px;
+        }
+
+        .pivot-config label:first-child { margin-top: 0; }
+
+        .subhead {
+            font-size: 13px;
+            font-weight: 800;
+            margin: 20px 0 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-slot {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .filter-slot select { flex: 1; min-width: 0; font-size: 12.5px; padding: 8px 28px 8px 10px; }
+
+        .filter-slot .remove-btn {
+            flex: none;
+            width: 34px;
+            border: 1px solid var(--line-strong);
+            background: var(--card);
+            color: var(--muted);
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .filter-slot .remove-btn:hover {
+            border-color: var(--neg);
+            color: var(--neg);
+            background: var(--neg-soft);
+        }
+
+        .add-filter-btn {
+            width: 100%;
+            padding: 9px;
+            border: 1.5px dashed var(--brand);
+            background: transparent;
+            color: var(--brand);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .add-filter-btn:hover { background: var(--brand-soft); }
+
+        .pivot-preview {
+            background: #f8fafd;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            margin-top: 18px;
+        }
+
+        .pivot-preview h4 {
+            font-size: 12.5px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            color: var(--ink-2);
+        }
+
+        .pivot-preview-grid {
+            display: grid;
+            gap: 4px;
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        .pivot-cell {
+            background: var(--card);
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            border: 1px solid var(--line);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .pivot-cell.num { text-align: right; }
+
+        .pivot-cell-header {
+            background: var(--brand);
+            border-color: var(--brand);
+            color: #fff;
+            font-weight: 700;
+        }
+
+        /* ---------------- Utility & responsive ---------------- */
+        .hidden { display: none !important; }
+
+        .footer {
+            margin-top: 36px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        @media (max-width: 1120px) {
+            .main-container { flex-direction: column; }
+            .pivot-panel { width: 100%; position: static; }
+        }
+
+        @media (max-width: 640px) {
+            .page { padding: 0 16px 48px; }
+            .chart-container { grid-template-columns: 1fr; }
+            .bar-label { width: 84px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <header class="topbar">
+            <div class="brand">
+                <span class="brand-mark">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13l5 5L20 6"/></svg>
+                </span>
+                Purchase CI <small>SIMULATION</small>
+            </div>
+            <div class="topbar-badges">
+                <span class="pill-badge">Y / Y+1 24개월</span>
+                <span class="pill-badge accent">브라우저에서 100% 처리 · 데이터 외부 전송 없음</span>
+            </div>
+        </header>
+
+        <section class="hero">
+            <h1>구매 데이터로 확인하는<br><span class="hl">CI 율 시뮬레이션</span></h1>
+            <p>RP Purchase 양식의 엑셀 · CSV 파일을 올리면 부품 / Category / Family / Team / BU / 협력사별 CI 율을 즉시 계산하고, 피벗 필터로 원하는 관점에서 탐색할 수 있습니다.</p>
+        </section>
+
+        <div class="mode-row">
+            <div class="segmented" id="modeSelector">
+                <button class="active" data-mode="excel" onclick="setMode('excel')">📗 엑셀 모드</button>
+                <button data-mode="csv" onclick="setMode('csv')">📄 CSV 모드 (오프라인)</button>
+            </div>
+        </div>
+
+        <section class="card upload-card">
+            <div id="excelUploadSection">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </div>
+                    <div class="title">엑셀 파일을 여기에 드래그하거나 클릭하여 업로드하세요</div>
+                    <div class="desc">2606_Tcon RP Purchase 와 동일한 양식 (.xlsx / .xls)</div>
+                    <span class="upload-note warn">⚠️ 엑셀 모드는 인터넷 연결이 필요합니다</span>
+                </div>
+                <input type="file" class="file-input" id="fileInput" accept=".xlsx,.xls">
+            </div>
+
+            <div id="csvUploadSection" class="hidden">
+                <div class="upload-area" id="csvUploadArea">
+                    <div class="upload-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                    </div>
+                    <div class="title">CSV 파일을 여기에 드래그하거나 클릭하여 업로드하세요</div>
+                    <div class="desc">엑셀에서 "다른 이름으로 저장" → "CSV (쉼표로 구분)" 선택</div>
+                    <span class="upload-note ok">✅ CSV 모드는 인터넷 없이도 작동합니다</span>
+                </div>
+                <input type="file" class="file-input" id="csvFileInput" accept=".csv,.txt">
+            </div>
+
+            <div id="statusMessage"></div>
+
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">엑셀 파일 선택</button>
+                <button class="btn btn-ghost" onclick="document.getElementById('csvFileInput').click()">CSV 파일 선택</button>
+                <button class="btn btn-aqua" onclick="downloadCSVTemplate()">📥 CSV 템플릿 다운로드</button>
+            </div>
+        </section>
+
+        <div id="loadingSection" class="loading hidden">
+            <div class="spinner"></div>
+            <div>데이터를 처리 중입니다...</div>
+        </div>
+
+        <div id="mainContent" class="hidden" style="margin-top: 18px;">
+            <div class="main-container">
+                <div class="main-content">
+
+                    <div class="kpi-grid">
+                        <div class="kpi">
+                            <div class="kpi-icon blue">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+                            </div>
+                            <div>
+                                <h3>총 기준 금액</h3>
+                                <div class="value" id="totalBaseAmt">₩0</div>
+                            </div>
+                        </div>
+                        <div class="kpi">
+                            <div class="kpi-icon aqua">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="18"/></svg>
+                            </div>
+                            <div>
+                                <h3>총 소요 금액</h3>
+                                <div class="value" id="totalReceiptAmt">₩0</div>
+                            </div>
+                        </div>
+                        <div class="kpi">
+                            <div class="kpi-icon peach">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                            </div>
+                            <div>
+                                <h3>종합 CI 율</h3>
+                                <div class="value" id="totalCiRate">0%</div>
+                            </div>
+                        </div>
+                        <div class="kpi">
+                            <div class="kpi-icon gray">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                            </div>
+                            <div>
+                                <h3>총 부품 수</h3>
+                                <div class="value" id="totalParts">0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <section class="card filter-card">
+                        <div style="display:flex; justify-content:center;">
+                            <div class="segmented">
+                                <button class="active" id="btnY" onclick="setViewMode('Y')">Y 년도 보기</button>
+                                <button id="btnY1" onclick="setViewMode('Y1')">Y+1 년도 보기</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="card filter-card" style="margin-top:14px;">
+                        <div class="filter-grid">
+                            <div class="filter-group">
+                                <label>Customer Type</label>
+                                <select id="filterCustomerType" onchange="applyFilters()"><option value="">전체</option></select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Team</label>
+                                <select id="filterTeam" onchange="applyFilters()"><option value="">전체</option></select>
+                            </div>
+                            <div class="filter-group">
+                                <label>BU</label>
+                                <select id="filterBU" onchange="applyFilters()"><option value="">전체</option></select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Category1</label>
+                                <select id="filterCategory1" onchange="applyFilters()"><option value="">전체</option></select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Family Name</label>
+                                <select id="filterFamily" onchange="applyFilters()"><option value="">전체</option></select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Supplier</label>
+                                <select id="filterSupplier" onchange="applyFilters()"><option value="">전체</option></select>
+                            </div>
+                            <div class="filter-group">
+                                <button class="btn btn-ghost" style="width:100%;" onclick="resetFilters()">필터 초기화</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="card data-card" style="margin-top:14px;">
+                        <div class="tabs">
+                            <button class="tab active" data-tab="parts" onclick="showTab('parts')">부품별 CI 율</button>
+                            <button class="tab" data-tab="category" onclick="showTab('category')">Category 별</button>
+                            <button class="tab" data-tab="family" onclick="showTab('family')">Family Name 별</button>
+                            <button class="tab" data-tab="team" onclick="showTab('team')">Team 별</button>
+                            <button class="tab" data-tab="bu" onclick="showTab('bu')">BU 별</button>
+                            <button class="tab" data-tab="supplier" onclick="showTab('supplier')">협력사 별</button>
+                            <button class="tab" data-tab="chart" onclick="showTab('chart')">차트 보기</button>
+                        </div>
+
+                        <div id="partsTabWrap">
+                            <div id="partsTab" class="table-container"></div>
+                            <div id="partsTableNote" class="table-note"></div>
+                        </div>
+                        <div id="categoryTab" class="table-container hidden"></div>
+                        <div id="familyTab" class="table-container hidden"></div>
+                        <div id="teamTab" class="table-container hidden"></div>
+                        <div id="buTab" class="table-container hidden"></div>
+                        <div id="supplierTab" class="table-container hidden"></div>
+                        <div id="chartTab" class="chart-container hidden"></div>
+                    </section>
+                </div>
+
+                <!-- Pivot Panel -->
+                <aside class="pivot-panel">
+                    <h3>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                        피벗 필터 설정
+                    </h3>
+
+                    <div class="pivot-config">
+                        <label>행 (Rows)</label>
+                        <select id="pivotRows" onchange="updatePivot()">
+                            <option value="division">Division</option>
+                            <option value="team">Team</option>
+                            <option value="bu">BU</option>
+                            <option value="prodGr">제품군</option>
+                            <option value="category1">Category1</option>
+                            <option value="category2">Category2</option>
+                            <option value="customerType">Customer Type</option>
+                            <option value="familyCode">Family Code</option>
+                        </select>
+
+                        <label>열 (Columns)</label>
+                        <select id="pivotCols" onchange="updatePivot()">
+                            <option value="">-- 없음 --</option>
+                            <option value="division">Division</option>
+                            <option value="team">Team</option>
+                            <option value="bu">BU</option>
+                            <option value="prodGr">제품군</option>
+                            <option value="category1">Category1</option>
+                            <option value="category2">Category2</option>
+                            <option value="customerType">Customer Type</option>
+                            <option value="familyCode">Family Code</option>
+                        </select>
+
+                        <label>값 (Values)</label>
+                        <select id="pivotValues" onchange="updatePivot()">
+                            <option value="baseAmt">기준 금액</option>
+                            <option value="receiptAmt">소요 금액</option>
+                            <option value="ciRate">CI 율</option>
+                        </select>
+                    </div>
+
+                    <div class="subhead">🔍 퀵 필터</div>
+                    <div id="quickFilters"></div>
+                    <button class="add-filter-btn" onclick="addQuickFilter()">+ 필터 추가</button>
+
+                    <div class="pivot-preview">
+                        <h4>📋 미리보기</h4>
+                        <div id="pivotPreviewGrid" class="pivot-preview-grid"></div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+
+        <div class="footer">모든 계산은 브라우저 안에서만 수행되며, 업로드한 파일이 서버로 전송되지 않습니다.</div>
+    </div>
+
+    <div class="viz-tooltip" id="vizTooltip"></div>
+
+    <script>
+        'use strict';
+
+        // ================= State =================
+        let rawData = [];
+        let filteredData = [];
+        let currentMode = 'excel';
+        let viewMode = 'Y'; // 'Y' or 'Y1'
+        let quickFilters = []; // [{ field: '', value: '' }]
+
+        const MAX_PART_ROWS = 1000; // 부품별 표 렌더링 상한 (성능 보호)
+
+        const FIELD_LABELS = {
+            division: 'Division',
+            team: 'Team',
+            bu: 'BU',
+            prodGr: '제품군',
+            category1: 'Category1',
+            category2: 'Category2',
+            customerType: 'Customer Type',
+            familyCode: 'Family Code'
+        };
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const csvUploadArea = document.getElementById('csvUploadArea');
+        const csvFileInput = document.getElementById('csvFileInput');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // ================= Helpers =================
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatCurrency(num) {
+            return '₩' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatPercent(num) {
+            return (num * 100).toFixed(2) + '%';
+        }
+
+        function showStatus(message, type) {
+            statusMessage.innerHTML = '<div class="status-message status-' + type + '">' + message + '</div>';
+        }
+
+        function setLoading(on) {
+            document.getElementById('loadingSection').classList.toggle('hidden', !on);
+            if (on) document.getElementById('mainContent').classList.add('hidden');
+        }
+
+        // ================= Mode / view switching =================
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('#modeSelector button').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            document.getElementById('excelUploadSection').classList.toggle('hidden', mode !== 'excel');
+            document.getElementById('csvUploadSection').classList.toggle('hidden', mode !== 'csv');
+        }
+
+        function setViewMode(mode) {
+            viewMode = mode;
+            document.getElementById('btnY').classList.toggle('active', mode === 'Y');
+            document.getElementById('btnY1').classList.toggle('active', mode === 'Y1');
+            updateSummary();
+            updateAllTables();
+            updatePivot();
+        }
+
+        // ================= Upload wiring =================
+        function wireDropzone(area, input, handler) {
+            area.addEventListener('click', () => input.click());
+            area.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                area.classList.add('dragover');
+            });
+            area.addEventListener('dragleave', () => area.classList.remove('dragover'));
+            area.addEventListener('drop', (e) => {
+                e.preventDefault();
+                area.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file) handler(file);
+            });
+            input.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) handler(file);
+                e.target.value = ''; // 같은 파일 재업로드 허용
+            });
+        }
+
+        wireDropzone(uploadArea, fileInput, handleExcelFile);
+        wireDropzone(csvUploadArea, csvFileInput, handleCSVFile);
+
+        // ================= File handling =================
+        function onDataLoaded() {
+            filteredData = [...rawData];
+            quickFilters = [];
+            renderQuickFilters();
+            updateFilters();
+            updateSummary();
+            updateAllTables();
+            updatePivot();
+
+            showStatus('데이터가 성공적으로 로드되었습니다. (' + rawData.length.toLocaleString() + '개 부품)', 'success');
+            setLoading(false);
+            document.getElementById('mainContent').classList.remove('hidden');
+        }
+
+        function handleExcelFile(file) {
+            console.log('Excel file selected:', file.name, file.type, file.size);
+            setLoading(true);
+            statusMessage.innerHTML = '';
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+
+                    if (typeof XLSX === 'undefined') {
+                        throw new Error('XLSX 라이브러리를 로드할 수 없습니다. 인터넷 연결을 확인하세요.');
+                    }
+
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    console.log('Workbook loaded, sheets:', workbook.SheetNames, '/ rows:', jsonData.length);
+
+                    rawData = parseData(jsonData);
+                    console.log('Parsed data, records:', rawData.length);
+
+                    if (rawData.length === 0) {
+                        showStatus('데이터를 찾을 수 없습니다. 파일 형식을 확인하세요.', 'error');
+                        setLoading(false);
+                        return;
+                    }
+
+                    onDataLoaded();
+                } catch (error) {
+                    console.error('Error:', error);
+                    showStatus('파일 처리 중 오류: ' + escapeHtml(error.message) +
+                        '<br><br>💡 인터넷이 없으면 엑셀 파일을 읽을 수 없습니다.<br>CSV 모드를 사용하거나 엑셀을 CSV 로 저장하여 업로드하세요.', 'error');
+                    setLoading(false);
+                }
+            };
+            reader.onerror = () => {
+                showStatus('파일을 읽을 수 없습니다.', 'error');
+                setLoading(false);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function handleCSVFile(file) {
+            console.log('CSV file selected:', file.name, file.type, file.size);
+            setLoading(true);
+            statusMessage.innerHTML = '';
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const text = e.target.result;
+                    rawData = parseCSV(text);
+                    console.log('Parsed CSV data, records:', rawData.length);
+
+                    if (rawData.length === 0) {
+                        showStatus('데이터를 찾을 수 없습니다. 파일 형식을 확인하세요.', 'error');
+                        setLoading(false);
+                        return;
+                    }
+
+                    onDataLoaded();
+                } catch (error) {
+                    console.error('Error:', error);
+                    showStatus('CSV 처리 중 오류: ' + escapeHtml(error.message), 'error');
+                    setLoading(false);
+                }
+            };
+            reader.onerror = () => {
+                showStatus('파일을 읽을 수 없습니다.', 'error');
+                setLoading(false);
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        // ================= Parsing =================
+        // 공통 레코드 생성: 메타 컬럼 인덱스와 월별 합계에서 레코드 1건 구성
+        // 컬럼 배치 (RP Purchase 양식):
+        //   0-19  메타 (2:Division, 3:Team, 4:BU, 5:ProdGr, 7:Cat1, 8:Cat2,
+        //          12:Customer Type, 14:Part No, 15:Supplier Code, 16:Supplier Name,
+        //          18:Family Code, 19:Family Name)
+        //   20-43 수량 24개월 / 44-67 기준 금액 24개월 / 68-91 소요 금액 24개월
+        function buildRecord(row, sums) {
+            const { totalBaseAmt, totalReceiptAmt, yBaseAmt, yReceiptAmt, y1BaseAmt, y1ReceiptAmt } = sums;
+            return {
+                partNo: String(row[14]).trim(),
+                division: String(row[2] || '').trim(),
+                team: String(row[3] || '').trim(),
+                bu: String(row[4] || '').trim(),
+                prodGr: String(row[5] || '').trim(),
+                category1: String(row[7] || '').trim(),
+                category2: String(row[8] || '').trim(),
+                customerType: String(row[12] || '').trim(),
+                supplierCode: String(row[15] || '').trim(),
+                supplierName: String(row[16] || '').trim(),
+                familyCode: String(row[18] || '').trim(),
+                familyName: String(row[19] || '').trim(),
+                totalBaseAmt: totalBaseAmt,
+                totalReceiptAmt: totalReceiptAmt,
+                yBaseAmt: yBaseAmt,
+                yReceiptAmt: yReceiptAmt,
+                y1BaseAmt: y1BaseAmt,
+                y1ReceiptAmt: y1ReceiptAmt,
+                ciRate: totalBaseAmt > 0 ? (totalBaseAmt - totalReceiptAmt) / totalBaseAmt : 0,
+                ciRateY: yBaseAmt > 0 ? (yBaseAmt - yReceiptAmt) / yBaseAmt : 0,
+                ciRateY1: y1BaseAmt > 0 ? (y1BaseAmt - y1ReceiptAmt) / y1BaseAmt : 0
+            };
+        }
+
+        // CSV 파싱 (인터넷 없이 작동) — 고정 컬럼: Base 44-67, Receipt 68-91
+        function parseCSV(text) {
+            const data = [];
+            const lines = text.split(/\r?\n/);
+            if (lines.length < 4) return data;
+
+            // 헤더 행 탐색: 'Base_Amt_01' 이 포함된 행 (기본 양식은 3번째 행, 0-index 2)
+            let headerIdx = -1;
+            for (let i = 0; i < Math.min(lines.length, 10); i++) {
+                if (lines[i].indexOf('Base_Amt_01') !== -1) { headerIdx = i; break; }
+            }
+            if (headerIdx === -1) headerIdx = 2;
+
+            for (let i = headerIdx + 1; i < lines.length; i++) {
+                const line = lines[i];
+                if (!line || line.trim() === '') continue;
+
+                const row = parseCSVLine(line);
+                if (!row || row.length === 0) continue;
+
+                const partNo = row[14] || '';
+                if (!partNo || String(partNo).trim() === '') continue;
+
+                let totalBaseAmt = 0, totalReceiptAmt = 0;
+                let yBaseAmt = 0, yReceiptAmt = 0, y1BaseAmt = 0, y1ReceiptAmt = 0;
+
+                for (let m = 0; m < 24; m++) {
+                    const baseIdx = 44 + m;
+                    if (baseIdx < row.length) {
+                        const val = parseFloat(row[baseIdx]);
+                        if (!isNaN(val)) {
+                            totalBaseAmt += val;
+                            if (m < 12) yBaseAmt += val; else y1BaseAmt += val;
+                        }
+                    }
+                    const receiptIdx = 68 + m;
+                    if (receiptIdx < row.length) {
+                        const val = parseFloat(row[receiptIdx]);
+                        if (!isNaN(val)) {
+                            totalReceiptAmt += val;
+                            if (m < 12) yReceiptAmt += val; else y1ReceiptAmt += val;
+                        }
+                    }
+                }
+
+                data.push(buildRecord(row, { totalBaseAmt, totalReceiptAmt, yBaseAmt, yReceiptAmt, y1BaseAmt, y1ReceiptAmt }));
+            }
+
+            return data;
+        }
+
+        // CSV 라인 파싱 (따옴표 처리 지원)
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                    if (inQuotes && line[i + 1] === '"') {
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current);
+            return result;
+        }
+
+        // 엑셀 파싱 — 헤더의 Base_Amt_XX / Receipt_Amt_XX 키를 사용
+        function parseData(jsonData) {
+            const data = [];
+            if (jsonData.length < 5) return data;
+
+            // 헤더 행 탐색: 'Base_Amt_01' 셀이 있는 행 (기본 양식은 4번째 행, 0-index 3)
+            let headerIdx = -1;
+            for (let i = 0; i < Math.min(jsonData.length, 10); i++) {
+                const r = jsonData[i];
+                if (r && r.some(c => String(c).trim() === 'Base_Amt_01')) { headerIdx = i; break; }
+            }
+            if (headerIdx === -1) headerIdx = 3;
+
+            const headerRow = jsonData[headerIdx];
+            const headerMap = {};
+            headerRow.forEach((h, idx) => {
+                if (h) headerMap[String(h).trim()] = idx;
+            });
+
+            for (let i = headerIdx + 1; i < jsonData.length; i++) {
+                const row = jsonData[i];
+                if (!row || row.length === 0) continue;
+
+                const partNo = row[14] || '';
+                if (!partNo || String(partNo).trim() === '') continue;
+
+                let totalBaseAmt = 0, totalReceiptAmt = 0;
+                let yBaseAmt = 0, yReceiptAmt = 0, y1BaseAmt = 0, y1ReceiptAmt = 0;
+
+                for (let m = 1; m <= 24; m++) {
+                    const baseKey = 'Base_Amt_' + String(m).padStart(2, '0');
+                    const receiptKey = 'Receipt_Amt_' + String(m).padStart(2, '0');
+
+                    if (headerMap[baseKey] !== undefined) {
+                        const val = parseFloat(row[headerMap[baseKey]]);
+                        if (!isNaN(val)) {
+                            totalBaseAmt += val;
+                            if (m <= 12) yBaseAmt += val; else y1BaseAmt += val;
+                        }
+                    }
+                    if (headerMap[receiptKey] !== undefined) {
+                        const val = parseFloat(row[headerMap[receiptKey]]);
+                        if (!isNaN(val)) {
+                            totalReceiptAmt += val;
+                            if (m <= 12) yReceiptAmt += val; else y1ReceiptAmt += val;
+                        }
+                    }
+                }
+
+                data.push(buildRecord(row, { totalBaseAmt, totalReceiptAmt, yBaseAmt, yReceiptAmt, y1BaseAmt, y1ReceiptAmt }));
+            }
+
+            return data;
+        }
+
+        // ================= Filters =================
+        function updateFilters() {
+            const filters = {
+                filterCustomerType: new Set(rawData.map(d => d.customerType).filter(Boolean)),
+                filterTeam: new Set(rawData.map(d => d.team).filter(Boolean)),
+                filterBU: new Set(rawData.map(d => d.bu).filter(Boolean)),
+                filterCategory1: new Set(rawData.map(d => d.category1).filter(Boolean)),
+                filterFamily: new Set(rawData.map(d => d.familyName).filter(Boolean)),
+                filterSupplier: new Set(rawData.map(d => d.supplierName).filter(Boolean))
+            };
+
+            for (const [filterId, values] of Object.entries(filters)) {
+                const select = document.getElementById(filterId);
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">전체</option>';
+                [...values].sort().forEach(v => {
+                    const option = document.createElement('option');
+                    option.value = v;
+                    option.textContent = v;
+                    select.appendChild(option);
+                });
+                select.value = currentValue;
+            }
+        }
+
+        // 메인 드롭다운 + 퀵 필터를 하나의 파이프라인으로 결합
+        function computeFilteredData() {
+            const filters = {
+                customerType: document.getElementById('filterCustomerType').value,
+                team: document.getElementById('filterTeam').value,
+                bu: document.getElementById('filterBU').value,
+                category1: document.getElementById('filterCategory1').value,
+                familyName: document.getElementById('filterFamily').value,
+                supplierName: document.getElementById('filterSupplier').value
+            };
+
+            let result = rawData.filter(d => {
+                return (!filters.customerType || d.customerType === filters.customerType) &&
+                       (!filters.team || d.team === filters.team) &&
+                       (!filters.bu || d.bu === filters.bu) &&
+                       (!filters.category1 || d.category1 === filters.category1) &&
+                       (!filters.familyName || d.familyName === filters.familyName) &&
+                       (!filters.supplierName || d.supplierName === filters.supplierName);
+            });
+
+            quickFilters.forEach(f => {
+                if (f.field && f.value) {
+                    result = result.filter(d => d[f.field] === f.value);
+                }
+            });
+
+            return result;
+        }
+
+        function applyFilters() {
+            filteredData = computeFilteredData();
+            updateSummary();
+            updateAllTables();
+            updatePivot();
+        }
+
+        function resetFilters() {
+            ['filterCustomerType', 'filterTeam', 'filterBU', 'filterCategory1', 'filterFamily', 'filterSupplier']
+                .forEach(id => { document.getElementById(id).value = ''; });
+            quickFilters = [];
+            renderQuickFilters();
+            applyFilters();
+            updateFilters();
+        }
+
+        // ================= Summary =================
+        function updateSummary() {
+            let baseAmt, receiptAmt;
+
+            if (viewMode === 'Y') {
+                baseAmt = filteredData.reduce((sum, d) => sum + d.yBaseAmt, 0);
+                receiptAmt = filteredData.reduce((sum, d) => sum + d.yReceiptAmt, 0);
+            } else {
+                baseAmt = filteredData.reduce((sum, d) => sum + d.y1BaseAmt, 0);
+                receiptAmt = filteredData.reduce((sum, d) => sum + d.y1ReceiptAmt, 0);
+            }
+            const ciRate = baseAmt > 0 ? (baseAmt - receiptAmt) / baseAmt : 0;
+
+            document.getElementById('totalBaseAmt').textContent = formatCurrency(baseAmt);
+            document.getElementById('totalReceiptAmt').textContent = formatCurrency(receiptAmt);
+
+            const ciEl = document.getElementById('totalCiRate');
+            ciEl.textContent = formatPercent(ciRate);
+            ciEl.className = 'value ' + (ciRate >= 0 ? 'positive' : 'negative');
+
+            document.getElementById('totalParts').textContent = filteredData.length.toLocaleString();
+        }
+
+        // ================= Tables =================
+        function updateAllTables() {
+            updatePartsTable();
+            updateCategoryTable();
+            updateFamilyTable();
+            updateTeamTable();
+            updateBuTable();
+            updateSupplierTable();
+            updateCharts();
+        }
+
+        function updatePartsTable() {
+            const note = document.getElementById('partsTableNote');
+
+            if (filteredData.length === 0) {
+                document.getElementById('partsTab').innerHTML = '<div class="empty-note">조건에 맞는 데이터가 없습니다.</div>';
+                note.textContent = '';
+                return;
+            }
+
+            const rows = filteredData.slice(0, MAX_PART_ROWS);
+            const html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Part No</th>
+                            <th>Team</th>
+                            <th>BU</th>
+                            <th>Category</th>
+                            <th>Family Name</th>
+                            <th>Supplier</th>
+                            <th>기준 금액</th>
+                            <th>소요 금액</th>
+                            <th>CI 율</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map(d => {
+                            const baseAmt = viewMode === 'Y' ? d.yBaseAmt : d.y1BaseAmt;
+                            const receiptAmt = viewMode === 'Y' ? d.yReceiptAmt : d.y1ReceiptAmt;
+                            const ciRate = viewMode === 'Y' ? d.ciRateY : d.ciRateY1;
+                            return `
+                            <tr>
+                                <td>${escapeHtml(d.partNo)}</td>
+                                <td>${escapeHtml(d.team)}</td>
+                                <td>${escapeHtml(d.bu)}</td>
+                                <td>${escapeHtml(d.category1)}</td>
+                                <td>${escapeHtml(d.familyName)}</td>
+                                <td>${escapeHtml(d.supplierName)}</td>
+                                <td>${formatCurrency(baseAmt)}</td>
+                                <td>${formatCurrency(receiptAmt)}</td>
+                                <td class="${ciRate >= 0 ? 'ci-positive' : 'ci-negative'}">${formatPercent(ciRate)}</td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+            document.getElementById('partsTab').innerHTML = html;
+            note.textContent = filteredData.length > MAX_PART_ROWS
+                ? `표시 성능을 위해 상위 ${MAX_PART_ROWS.toLocaleString()}개 행만 표시합니다. (전체 ${filteredData.length.toLocaleString()}개 — 필터로 범위를 좁혀보세요)`
+                : '';
+        }
+
+        function aggregateData(groupBy) {
+            const groups = {};
+            filteredData.forEach(d => {
+                const key = d[groupBy];
+                if (!key) return;
+                if (!groups[key]) {
+                    groups[key] = { name: key, baseAmt: 0, receiptAmt: 0 };
+                }
+                if (viewMode === 'Y') {
+                    groups[key].baseAmt += d.yBaseAmt;
+                    groups[key].receiptAmt += d.yReceiptAmt;
+                } else {
+                    groups[key].baseAmt += d.y1BaseAmt;
+                    groups[key].receiptAmt += d.y1ReceiptAmt;
+                }
+            });
+
+            return Object.values(groups).map(g => ({
+                ...g,
+                ciRate: g.baseAmt > 0 ? (g.baseAmt - g.receiptAmt) / g.baseAmt : 0
+            })).sort((a, b) => b.baseAmt - a.baseAmt);
+        }
+
+        function createGroupTable(data, groupBy) {
+            const labels = {
+                category1: 'Category',
+                familyName: 'Family Name',
+                team: 'Team',
+                bu: 'BU',
+                supplierName: 'Supplier'
+            };
+
+            if (data.length === 0) {
+                return '<div class="empty-note">조건에 맞는 데이터가 없습니다.</div>';
+            }
+
+            return `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>${labels[groupBy] || 'Group'}</th>
+                            <th>기준 금액</th>
+                            <th>소요 금액</th>
+                            <th>CI 율</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(d => `
+                            <tr>
+                                <td>${escapeHtml(d.name)}</td>
+                                <td>${formatCurrency(d.baseAmt)}</td>
+                                <td>${formatCurrency(d.receiptAmt)}</td>
+                                <td class="${d.ciRate >= 0 ? 'ci-positive' : 'ci-negative'}">${formatPercent(d.ciRate)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function updateCategoryTable() {
+            document.getElementById('categoryTab').innerHTML = createGroupTable(aggregateData('category1'), 'category1');
+        }
+        function updateFamilyTable() {
+            document.getElementById('familyTab').innerHTML = createGroupTable(aggregateData('familyName'), 'familyName');
+        }
+        function updateTeamTable() {
+            document.getElementById('teamTab').innerHTML = createGroupTable(aggregateData('team'), 'team');
+        }
+        function updateBuTable() {
+            document.getElementById('buTab').innerHTML = createGroupTable(aggregateData('bu'), 'bu');
+        }
+        function updateSupplierTable() {
+            document.getElementById('supplierTab').innerHTML = createGroupTable(aggregateData('supplierName'), 'supplierName');
+        }
+
+        // ================= Charts (다이버징 바: 0 기준선 좌우로 음/양) =================
+        function updateCharts() {
+            const categories = [
+                { key: 'category1', title: 'Category 별 CI 율' },
+                { key: 'familyName', title: 'Family Name 별 CI 율' },
+                { key: 'team', title: 'Team 별 CI 율' },
+                { key: 'bu', title: 'BU 별 CI 율' }
+            ];
+
+            const html = categories.map(cat => {
+                const data = aggregateData(cat.key).slice(0, 10);
+                if (data.length === 0) {
+                    return `
+                        <div class="chart-box">
+                            <h4>${cat.title}</h4>
+                            <div class="empty-note">데이터 없음</div>
+                        </div>`;
+                }
+                const maxVal = Math.max(...data.map(d => Math.abs(d.ciRate)), 0.001);
+
+                return `
+                    <div class="chart-box">
+                        <h4>${cat.title}</h4>
+                        <div class="chart-legend">
+                            <span><i class="sw-pos"></i>CI 양수 (절감)</span>
+                            <span><i class="sw-neg"></i>CI 음수 (초과)</span>
+                        </div>
+                        <div class="bar-chart">
+                            ${data.map(d => {
+                                const pct = Math.min((Math.abs(d.ciRate) / maxVal) * 100, 100);
+                                const pos = d.ciRate >= 0;
+                                return `
+                                <div class="bar-item"
+                                     data-name="${escapeHtml(d.name)}"
+                                     data-base="${d.baseAmt}"
+                                     data-receipt="${d.receiptAmt}"
+                                     data-ci="${d.ciRate}">
+                                    <div class="bar-label" title="${escapeHtml(d.name)}">${escapeHtml(d.name)}</div>
+                                    <div class="bar-track">
+                                        <div class="bar-half">
+                                            ${!pos ? `<div class="bar negative" style="width:${pct}%"></div>` : ''}
+                                        </div>
+                                        <div class="bar-half">
+                                            ${pos ? `<div class="bar positive" style="width:${pct}%"></div>` : ''}
+                                        </div>
+                                    </div>
+                                    <div class="bar-value ${pos ? 'ci-positive' : 'ci-negative'}">${formatPercent(d.ciRate)}</div>
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('chartTab').innerHTML = html;
+        }
+
+        // 차트 툴팁
+        const vizTooltip = document.getElementById('vizTooltip');
+
+        document.getElementById('chartTab').addEventListener('mousemove', (e) => {
+            const item = e.target.closest('.bar-item');
+            if (!item) { vizTooltip.classList.remove('show'); return; }
+
+            const base = parseFloat(item.dataset.base);
+            const receipt = parseFloat(item.dataset.receipt);
+            const ci = parseFloat(item.dataset.ci);
+
+            vizTooltip.innerHTML = `
+                <div class="tt-title">${escapeHtml(item.dataset.name)}</div>
+                <div class="tt-row"><span>기준 금액</span><b>${formatCurrency(base)}</b></div>
+                <div class="tt-row"><span>소요 금액</span><b>${formatCurrency(receipt)}</b></div>
+                <div class="tt-row"><span>CI 율</span><b>${formatPercent(ci)}</b></div>
+            `;
+
+            const pad = 14;
+            let x = e.clientX + pad;
+            let y = e.clientY + pad;
+            const rect = vizTooltip.getBoundingClientRect();
+            if (x + rect.width > window.innerWidth - 8) x = e.clientX - rect.width - pad;
+            if (y + rect.height > window.innerHeight - 8) y = e.clientY - rect.height - pad;
+            vizTooltip.style.left = x + 'px';
+            vizTooltip.style.top = y + 'px';
+            vizTooltip.classList.add('show');
+        });
+
+        document.getElementById('chartTab').addEventListener('mouseleave', () => {
+            vizTooltip.classList.remove('show');
+        });
+
+        // ================= Tabs =================
+        function showTab(tabName) {
+            const tabs = ['parts', 'category', 'family', 'team', 'bu', 'supplier', 'chart'];
+            tabs.forEach(t => {
+                const el = t === 'parts' ? document.getElementById('partsTabWrap') : document.getElementById(t + 'Tab');
+                el.classList.toggle('hidden', t !== tabName);
+            });
+            document.querySelectorAll('.tab').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tabName);
+            });
+        }
+
+        // ================= Pivot =================
+        function updatePivot() {
+            const rowsField = document.getElementById('pivotRows').value;
+            const colsField = document.getElementById('pivotCols').value;
+            const valuesField = document.getElementById('pivotValues').value;
+
+            const previewGrid = document.getElementById('pivotPreviewGrid');
+            const pivotData = generatePivotData(rowsField, colsField, valuesField);
+
+            const colCount = colsField ? 3 : 2;
+            previewGrid.style.gridTemplateColumns = `repeat(${colCount}, minmax(0, 1fr))`;
+
+            const valueLabel = valuesField === 'baseAmt' ? '기준금액'
+                             : valuesField === 'receiptAmt' ? '소요금액' : 'CI 율';
+
+            let html = '<div class="pivot-cell pivot-cell-header">' + escapeHtml(FIELD_LABELS[rowsField] || rowsField) + '</div>';
+            if (colsField) {
+                html += '<div class="pivot-cell pivot-cell-header">' + escapeHtml(FIELD_LABELS[colsField] || colsField) + '</div>';
+            }
+            html += '<div class="pivot-cell pivot-cell-header num">' + valueLabel + '</div>';
+
+            pivotData.slice(0, 20).forEach(item => {
+                html += '<div class="pivot-cell" title="' + escapeHtml(item.rowLabel) + '">' + escapeHtml(item.rowLabel) + '</div>';
+                if (colsField) {
+                    html += '<div class="pivot-cell" title="' + escapeHtml(item.colLabel) + '">' + escapeHtml(item.colLabel) + '</div>';
+                }
+                html += '<div class="pivot-cell num">' + formatValue(item.value, valuesField) + '</div>';
+            });
+
+            previewGrid.innerHTML = html;
+        }
+
+        function generatePivotData(rowsField, colsField, valuesField) {
+            const result = [];
+            const groups = {};
+
+            filteredData.forEach(d => {
+                const rowKey = d[rowsField] || 'N/A';
+                const colKey = colsField ? (d[colsField] || 'N/A') : '';
+                const key = rowKey + '|' + colKey;
+
+                if (!groups[key]) {
+                    groups[key] = {
+                        rowLabel: rowKey,
+                        colLabel: colKey,
+                        baseAmt: 0,
+                        receiptAmt: 0,
+                        ciSum: 0,
+                        count: 0
+                    };
+                }
+
+                if (viewMode === 'Y') {
+                    groups[key].baseAmt += d.yBaseAmt;
+                    groups[key].receiptAmt += d.yReceiptAmt;
+                } else {
+                    groups[key].baseAmt += d.y1BaseAmt;
+                    groups[key].receiptAmt += d.y1ReceiptAmt;
+                }
+                groups[key].ciSum += (viewMode === 'Y' ? d.ciRateY : d.ciRateY1);
+                groups[key].count++;
+            });
+
+            for (const key in groups) {
+                const g = groups[key];
+                let value;
+                if (valuesField === 'baseAmt') value = g.baseAmt;
+                else if (valuesField === 'receiptAmt') value = g.receiptAmt;
+                else value = g.count > 0 ? g.ciSum / g.count : 0;
+
+                result.push({ rowLabel: g.rowLabel, colLabel: g.colLabel, value: value });
+            }
+
+            return result.sort((a, b) => b.value - a.value);
+        }
+
+        function formatValue(value, type) {
+            if (type === 'ciRate') {
+                return (value * 100).toFixed(1) + '%';
+            }
+            return '₩' + value.toLocaleString('en-US', { maximumFractionDigits: 0 });
+        }
+
+        // ================= Quick filters =================
+        function addQuickFilter() {
+            quickFilters.push({ field: '', value: '' });
+            renderQuickFilters();
+        }
+
+        function removeQuickFilter(idx) {
+            quickFilters.splice(idx, 1);
+            renderQuickFilters();
+            applyFilters();
+        }
+
+        function setQuickFilterField(idx, field) {
+            quickFilters[idx].field = field;
+            quickFilters[idx].value = '';
+            renderQuickFilters();
+            applyFilters();
+        }
+
+        function setQuickFilterValue(idx, value) {
+            quickFilters[idx].value = value;
+            applyFilters();
+        }
+
+        function renderQuickFilters() {
+            const container = document.getElementById('quickFilters');
+            container.innerHTML = '';
+
+            quickFilters.forEach((f, idx) => {
+                const slot = document.createElement('div');
+                slot.className = 'filter-slot';
+
+                // 필드 선택
+                const fieldSelect = document.createElement('select');
+                fieldSelect.appendChild(new Option('-- 필드 --', ''));
+                Object.entries(FIELD_LABELS).forEach(([value, label]) => {
+                    fieldSelect.appendChild(new Option(label, value));
+                });
+                fieldSelect.value = f.field;
+                fieldSelect.onchange = () => setQuickFilterField(idx, fieldSelect.value);
+                slot.appendChild(fieldSelect);
+
+                // 값 선택 (필드를 고르면 활성화)
+                const valueSelect = document.createElement('select');
+                valueSelect.appendChild(new Option('전체', ''));
+                if (f.field) {
+                    [...new Set(rawData.map(d => d[f.field]).filter(Boolean))].sort().forEach(v => {
+                        valueSelect.appendChild(new Option(v, v));
+                    });
+                    valueSelect.value = f.value;
+                } else {
+                    valueSelect.disabled = true;
+                }
+                valueSelect.onchange = () => setQuickFilterValue(idx, valueSelect.value);
+                slot.appendChild(valueSelect);
+
+                // 제거 버튼
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.textContent = '×';
+                removeBtn.title = '필터 제거';
+                removeBtn.onclick = () => removeQuickFilter(idx);
+                slot.appendChild(removeBtn);
+
+                container.appendChild(slot);
+            });
+        }
+
+        // ================= CSV template =================
+        function downloadCSVTemplate() {
+            // CSV template content
+            const csvContent = `Update 한 월,기준,소속 1,소속 2,사업부,제품군,무시,부품 Category,부품 Category 상세,무시,법인,공장 위치,구매 정보,무시,부품 Part No,구매 협력사 코드,협력사 명,메이커 협력사 코드,메이커 협력사 명,협력사 코드 통칭,Y 1 월 수량,Y 2 월 수량,Y 3 월 수량,Y 4 월 수량,Y 5 월 수량,Y 6 월 수량,Y 7 월 수량,Y 8 월 수량,Y 9 월 수량,Y 10 월 수량,Y 11 월 수량,Y 12 월 수량,Y+1 1 월 수량,Y+1 2 월 수량,Y+1 3 월 수량,Y+1 4 월 수량,Y+1 5 월 수량,Y+1 6 월 수량,Y+1 7 월 수량,Y+1 8 월 수량,Y+1 9 월 수량,Y+1 10 월 수량,Y+1 11 월 수량,Y+1 12 월 수량,Y 1 월 기준 금액,Y 2 월 기준 금액,Y 3 월 기준 금액,Y 4 월 기준 금액,Y 5 월 기준 금액,Y 6 월 기준 금액,Y 7 월 기준 금액,Y 8 월 기준 금액,Y 9 월 기준 금액,Y 10 월 기준 금액,Y 11 월 기준 금액,Y 12 월 기준 금액,Y+1 1 월 기준 금액,Y+1 2 월 기준 금액,Y+1 3 월 기준 금액,Y+1 4 월 기준 금액,Y+1 5 월 기준 금액,Y+1 6 월 기준 금액,Y+1 7 월 기준 금액,Y+1 8 월 기준 금액,Y+1 9 월 기준 금액,Y+1 10 월 기준 금액,Y+1 11 월 기준 금액,Y+1 12 월 기준 금액,Y 1 월 소요 금액,Y 2 월 소요 금액,Y 3 월 소요 금액,Y 4 월 소요 금액,Y 5 월 소요 금액,Y 6 월 소요 금액,Y 7 월 소요 금액,Y 8 월 소요 금액,Y 9 월 소요 금액,Y 10 월 소요 금액,Y 11 월 소요 금액,Y 12 월 소요 금액,Y+1 1 월 소요 금액,Y+1 2 월 소요 금액,Y+1 3 월 소요 금액,Y+1 4 월 소요 금액,Y+1 5 월 소요 금액,Y+1 6 월 소요 금액,Y+1 7 월 소요 금액,Y+1 8 월 소요 금액,Y+1 9 월 소요 금액,Y+1 10 월 소요 금액,Y+1 11 월 소요 금액,Y+1 12 월 소요 금액
+,,,,,,,,,,,,,,,,,,,,26-01 Qty,26-02 Qty,26-03 Qty,26-04 Qty,26-05 Qty,26-06 Qty,26-07 Qty,26-08 Qty,26-09 Qty,26-10 Qty,26-11 Qty,26-12 Qty,27-01 Qty,27-02 Qty,27-03 Qty,27-04 Qty,27-05 Qty,27-06 Qty,27-07 Qty,27-08 Qty,27-09 Qty,27-10 Qty,27-11 Qty,27-12 Qty,26-01 Base Amt,26-02 Base Amt,26-03 Base Amt,26-04 Base Amt,26-05 Base Amt,26-06 Base Amt,26-07 Base Amt,26-08 Base Amt,26-09 Base Amt,26-10 Base Amt,26-11 Base Amt,26-12 Base Amt,27-01 Base Amt,27-02 Base Amt,27-03 Base Amt,27-04 Base Amt,27-05 Base Amt,27-06 Base Amt,27-07 Base Amt,27-08 Base Amt,27-09 Base Amt,27-10 Base Amt,27-11 Base Amt,27-12 Base Amt,26-01 Receipt Amt,26-02 Receipt Amt,26-03 Receipt Amt,26-04 Receipt Amt,26-05 Receipt Amt,26-06 Receipt Amt,26-07 Receipt Amt,26-08 Receipt Amt,26-09 Receipt Amt,26-10 Receipt Amt,26-11 Receipt Amt,26-12 Receipt Amt,27-01 Receipt Amt,27-02 Receipt Amt,27-03 Receipt Amt,27-04 Receipt Amt,27-05 Receipt Amt,27-06 Receipt Amt,27-07 Receipt Amt,27-08 Receipt Amt,27-09 Receipt Amt,27-10 Receipt Amt,27-11 Receipt Amt,27-12 Receipt Amt
+Month,Base Price Type,Division,Team,BU,Prod Gr2,Prod Gr3,Category1,Category2,Category3,OU,Site,Customer Type,Secondary Purchase,Part No,Supplier Code,Supplier Name,Maker Code,Maker Name,Family Name,Quantity01,Quantity02,Quantity03,Quantity04,Quantity05,Quantity06,Quantity07,Quantity08,Quantity09,Quantity10,Quantity11,Quantity12,Quantity13,Quantity14,Quantity15,Quantity16,Quantity17,Quantity18,Quantity19,Quantity20,Quantity21,Quantity22,Quantity23,Quantity24,Base_Amt_01,Base_Amt_02,Base_Amt_03,Base_Amt_04,Base_Amt_05,Base_Amt_06,Base_Amt_07,Base_Amt_08,Base_Amt_09,Base_Amt_10,Base_Amt_11,Base_Amt_12,Base_Amt_13,Base_Amt_14,Base_Amt_15,Base_Amt_16,Base_Amt_17,Base_Amt_18,Base_Amt_19,Base_Amt_20,Base_Amt_21,Base_Amt_22,Base_Amt_23,Base_Amt_24,Receipt_Amt_01,Receipt_Amt_02,Receipt_Amt_03,Receipt_Amt_04,Receipt_Amt_05,Receipt_Amt_06,Receipt_Amt_07,Receipt_Amt_08,Receipt_Amt_09,Receipt_Amt_10,Receipt_Amt_11,Receipt_Amt_12,Receipt_Amt_13,Receipt_Amt_14,Receipt_Amt_15,Receipt_Amt_16,Receipt_Amt_17,Receipt_Amt_18,Receipt_Amt_19,Receipt_Amt_20,Receipt_Amt_21,Receipt_Amt_22,Receipt_Amt_23,Receipt_Amt_24
+202606,PREYEAR,구매 2 담당,회로구매 1 팀,IT,MNT,ALL,TCON,TCON,ALL,LGDKR,KR,비지정,N,0ISWL-0228A,KR000421,LGDKR_ 주식회사 엘엑스세미콘_KR000421,KR000421,LGDKR_ 주식회사 엘엑스세미콘_KR000421,LX 세미콘,7946,3670,9900,3500,7141,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.109774785,0.050701417,0.13676949,0.04835285,0.098653629,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.109764455,0.050696646,0.13675662,0.0483483,0.098644346,0,0,0,0,0,0,0,0,0,0,0,0,0`;
+
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'RP_Purchase_Template.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showStatus('CSV 템플릿이 다운로드되었습니다.', 'success');
+        }
+    </script>
+</body>
+</html>
