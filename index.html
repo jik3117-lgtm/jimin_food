@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>오늘 뭐 먹지?</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#38bdf8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="오늘 뭐 먹지?">
+<link rel="apple-touch-icon" href="icon.svg">
 <style>
   :root {
     --sky: #38bdf8; --sky-dark: #0ea5e9; --sky-deeper: #0284c7;
@@ -891,6 +897,16 @@ selDay(now.getFullYear(),now.getMonth(),now.getDate(),tk);
 // 구글 시트에서 최신 데이터 로드 + 2분마다 자동 갱신
 loadFromSheet();
 setInterval(loadFromSheet, 2*60*1000);
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/jimin_food/sw.js')
+      .then(r => console.log('SW registered'))
+      .catch(e => console.log('SW error', e));
+  });
+}
 </script>
 </body>
 </html>
