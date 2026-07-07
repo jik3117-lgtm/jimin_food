@@ -1,2424 +1,896 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>지민쀼 가계부</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        header {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
-        }
-
-        header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            cursor: pointer;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        header h1:hover {
-            transform: scale(1.02);
-            opacity: 0.9;
-        }
-
-        .edit-title-icon {
-            font-size: 1.2rem;
-            opacity: 0.5;
-            transition: opacity 0.3s;
-        }
-
-        header h1:hover .edit-title-icon {
-            opacity: 1;
-        }
-
-        header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-
-        .month-selector {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            margin-top: 15px;
-            background: rgba(255,255,255,0.2);
-            padding: 10px 20px;
-            border-radius: 15px;
-        }
-
-        .month-selector button {
-            background: white;
-            border: none;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .month-selector button:hover {
-            background: #667eea;
-            color: white;
-        }
-
-        .month-selector select {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            cursor: pointer;
-            background: white;
-        }
-
-        .year-controls {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .month-controls {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            margin-left: 10px;
-        }
-
-        .separator {
-            color: rgba(255,255,255,0.7);
-            font-size: 1.2rem;
-            margin: 0 5px;
-        }
-
-        .total-summary {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .total-summary h2 {
-            color: #333;
-            font-size: 1.3rem;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #eee;
-            text-align: center;
-        }
-
-        .total-summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-        }
-
-        .total-item {
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        .total-item.income { background: #e8f5e9; }
-        .total-item.expense { background: #ffebee; }
-        .total-item.balance { background: #e3f2fd; }
-        .total-item.savings { background: #fff3e0; }
-
-        .total-item label {
-            display: block;
-            color: #666;
-            font-size: 0.85rem;
-            margin-bottom: 5px;
-        }
-
-        .total-item .value {
-            font-size: 1.3rem;
-            font-weight: bold;
-        }
-
-        .total-item.income .value { color: #2e7d32; }
-        .total-item.expense .value { color: #c62828; }
-        .total-item.balance .value { color: #1565c0; }
-        .total-item.savings .value { color: #ef6c00; }
-
-        .expense-breakdown {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
-        }
-
-        .expense-item {
-            padding: 10px;
-            background: #fff5f5;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .expense-item label {
-            font-size: 0.8rem;
-            color: #666;
-        }
-
-        .expense-item .value {
-            font-weight: bold;
-            color: #c62828;
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .section {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .section h2 {
-            color: #333;
-            font-size: 1.3rem;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #eee;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .section h2 .icon {
-            font-size: 1.5rem;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            color: #555;
-            font-size: 0.9rem;
-            margin-bottom: 5px;
-        }
-
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #eee;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.3s;
-        }
-
-        .form-group select {
-            text-align: left;
-        }
-
-        .form-group input {
-            text-align: right;
-        }
-
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-danger {
-            background: #f44336;
-            color: white;
-            padding: 5px 10px;
-            width: auto;
-            font-size: 0.8rem;
-        }
-
-        .btn-danger:hover {
-            background: #d32f2f;
-        }
-
-        .btn-edit {
-            background: #4CAF50;
-            color: white;
-            padding: 5px 10px;
-            width: auto;
-            font-size: 0.8rem;
-        }
-
-        .btn-edit:hover {
-            background: #388E3C;
-        }
-
-        .item-list {
-            margin-top: 20px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-
-        .item-info {
-            flex: 1;
-        }
-
-        .item-name {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .item-amount {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .item-actions {
-            display: flex;
-            gap: 5px;
-        }
-
-        .total-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 15px;
-            background: #f0f0f0;
-            border-radius: 8px;
-            margin-top: 15px;
-            font-weight: bold;
-        }
-
-        .income-section h2 { color: #4CAF50; }
-        .expense-section h2 { color: #f44336; }
-        .fixed-section h2 { color: #2196F3; }
-        .loan-section h2 { color: #FF9800; }
-        .allowance-section h2 { color: #9C27B0; }
-
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .tab {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            background: #f0f0f0;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.3s;
-        }
-
-        .tab.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .savings-goal {
-            margin-top: 15px;
-            padding: 15px;
-            background: #fff3e0;
-            border-radius: 8px;
-        }
-
-        .savings-goal label {
-            display: block;
-            margin-bottom: 5px;
-            color: #666;
-        }
-
-        .progress-bar {
-            height: 10px;
-            background: #e0e0e0;
-            border-radius: 5px;
-            overflow: hidden;
-            margin-top: 10px;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #FF9800, #FFC107);
-            transition: width 0.3s;
-        }
-
-        .month-history {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-bottom: 20px;
-        }
-
-        .month-history h2 {
-            color: #333;
-            font-size: 1.3rem;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #eee;
-        }
-
-        .history-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 10px;
-        }
-
-        .history-item {
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .history-item:hover {
-            background: #667eea;
-            color: white;
-        }
-
-        .history-item.active {
-            background: #667eea;
-            color: white;
-        }
-
-        .history-month {
-            font-size: 0.9rem;
-            color: #666;
-        }
-
-        .history-item:hover .history-month,
-        .history-item.active .history-month {
-            color: rgba(255,255,255,0.8);
-        }
-
-        .history-balance {
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-
-        .nav-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .nav-btn {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            transition: all 0.3s;
-        }
-
-        .nav-btn.primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .nav-btn.secondary {
-            background: #f0f0f0;
-            color: #333;
-        }
-
-        .nav-btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .allowance-display {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-
-        .allowance-display .name {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .allowance-display .amount {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .allowance-display .actions {
-            display: flex;
-            gap: 5px;
-        }
-
-        .custom-input {
-            display: none;
-            margin-top: 10px;
-        }
-
-        .custom-input.active {
-            display: block;
-        }
-
-        .year-summary {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-bottom: 30px;
-        }
-
-        .year-summary h2 {
-            color: #333;
-            font-size: 1.3rem;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #eee;
-            text-align: center;
-        }
-
-        .year-summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .year-item {
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        .year-item.income { background: #e8f5e9; }
-        .year-item.expense { background: #ffebee; }
-        .year-item.balance { background: #e3f2fd; }
-        .year-item.savings { background: #fff3e0; }
-
-        .year-item label {
-            display: block;
-            color: #666;
-            font-size: 0.85rem;
-            margin-bottom: 5px;
-        }
-
-        .year-item .value {
-            font-size: 1.3rem;
-            font-weight: bold;
-        }
-
-        .year-item.income .value { color: #2e7d32; }
-        .year-item.expense .value { color: #c62828; }
-        .year-item.balance .value { color: #1565c0; }
-        .year-item.savings .value { color: #ef6c00; }
-
-        .year-breakdown {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
-        }
-
-        .year-expense-item {
-            padding: 10px;
-            background: #fff5f5;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .year-expense-item label {
-            font-size: 0.8rem;
-            color: #666;
-        }
-
-        .year-expense-item .value {
-            font-weight: bold;
-            color: #c62828;
-        }
-
-        .monthly-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            font-size: 0.85rem;
-        }
-
-        .monthly-table th, .monthly-table td {
-            padding: 10px;
-            text-align: center;
-            border: 1px solid #eee;
-        }
-
-        .monthly-table th {
-            background: #f8f9fa;
-            font-weight: 600;
-        }
-
-        .monthly-table tr:hover {
-            background: #f8f9fa;
-        }
-
-        .monthly-table .positive {
-            color: #2e7d32;
-        }
-
-        .monthly-table .negative {
-            color: #c62828;
-        }
-
-        .savings-list-section {
-            margin-top: 15px;
-        }
-
-        .savings-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-
-        .savings-item-info {
-            flex: 1;
-        }
-
-        .savings-item-name {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .savings-item-amount {
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .savings-item-actions {
-            display: flex;
-            gap: 5px;
-        }
-
-        .savings-total {
-            display: flex;
-            justify-content: space-between;
-            padding: 15px;
-            background: #fff3e0;
-            border-radius: 8px;
-            margin-top: 15px;
-            font-weight: bold;
-        }
-
-        .cloud-sync-section {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .cloud-sync-section h2 {
-            color: #333;
-            font-size: 1.3rem;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #eee;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .sync-status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 15px;
-        }
-
-        .sync-status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #ccc;
-        }
-
-        .sync-status-indicator.connected {
-            background: #4CAF50;
-        }
-
-        .sync-status-indicator.disconnected {
-            background: #f44336;
-        }
-
-        .sync-status-indicator.syncing {
-            background: #FF9800;
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .sync-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .sync-buttons .btn {
-            flex: 1;
-            min-width: 120px;
-        }
-
-        .config-section {
-            margin-top: 15px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-
-        .config-section input {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #eee;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            font-size: 0.9rem;
-        }
-
-        .config-section input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            max-width: 600px;
-            width: 90%;
-        }
-
-        .modal-content h3 {
-            margin-bottom: 15px;
-            color: #333;
-        }
-
-        .modal-content p {
-            margin-bottom: 20px;
-            color: #666;
-            line-height: 1.6;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .title-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #eee;
-            border-radius: 8px;
-            font-size: 1rem;
-            margin-top: 10px;
-        }
-
-        .title-input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        /* Mobile Responsive Styles */
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-
-            header h1 {
-                font-size: 1.3rem;
-            }
-
-            .edit-title-icon {
-                font-size: 1rem;
-            }
-
-            header p {
-                font-size: 0.9rem;
-            }
-
-            .month-selector {
-                padding: 8px 12px;
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-
-            .month-selector select {
-                padding: 6px 8px;
-                font-size: 0.9rem;
-            }
-
-            .month-selector button {
-                width: 28px;
-                height: 28px;
-                font-size: 0.9rem;
-            }
-
-            .separator {
-                font-size: 1rem;
-                margin: 0 3px;
-            }
-            
-            .main-content {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
-
-            .section {
-                padding: 15px;
-            }
-
-            .section h2 {
-                font-size: 1.1rem;
-            }
-
-            .form-group {
-                margin-bottom: 12px;
-            }
-
-            .form-group label {
-                font-size: 0.85rem;
-            }
-
-            .form-group input, .form-group select {
-                padding: 10px;
-                font-size: 0.9rem;
-            }
-
-            .btn {
-                padding: 10px;
-                font-size: 0.9rem;
-            }
-            
-            .total-summary {
-                padding: 15px;
-            }
-
-            .total-summary h2 {
-                font-size: 1.1rem;
-            }
-
-            .total-summary-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-            }
-
-            .total-item {
-                padding: 10px;
-            }
-
-            .total-item label {
-                font-size: 0.75rem;
-            }
-
-            .total-item .value {
-                font-size: 1rem;
-            }
-
-            .expense-breakdown {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 8px;
-            }
-
-            .expense-item {
-                padding: 8px;
-            }
-
-            .expense-item label {
-                font-size: 0.7rem;
-            }
-
-            .expense-item .value {
-                font-size: 0.9rem;
-            }
-
-            .nav-buttons {
-                flex-direction: column;
-                gap: 8px;
-            }
-
-            .nav-btn {
-                padding: 10px;
-                font-size: 0.9rem;
-            }
-
-            .month-history {
-                padding: 15px;
-            }
-
-            .month-history h2 {
-                font-size: 1.1rem;
-            }
-
-            .history-grid {
-                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-                gap: 8px;
-            }
-
-            .history-item {
-                padding: 10px;
-            }
-
-            .history-month {
-                font-size: 0.8rem;
-            }
-
-            .history-balance {
-                font-size: 0.9rem;
-            }
-
-            .year-summary {
-                padding: 15px;
-            }
-
-            .year-summary h2 {
-                font-size: 1.1rem;
-            }
-
-            .year-summary-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-            }
-
-            .year-item {
-                padding: 10px;
-            }
-
-            .year-item label {
-                font-size: 0.75rem;
-            }
-
-            .year-item .value {
-                font-size: 1rem;
-            }
-
-            .year-breakdown {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 8px;
-            }
-
-            .year-expense-item {
-                padding: 8px;
-            }
-
-            .year-expense-item label {
-                font-size: 0.7rem;
-            }
-
-            .year-expense-item .value {
-                font-size: 0.9rem;
-            }
-
-            .monthly-table {
-                font-size: 0.75rem;
-                overflow-x: auto;
-                display: block;
-            }
-
-            .monthly-table th, .monthly-table td {
-                padding: 6px 4px;
-            }
-
-            .cloud-sync-section {
-                padding: 15px;
-            }
-
-            .cloud-sync-section h2 {
-                font-size: 1.1rem;
-            }
-
-            .sync-buttons {
-                flex-direction: column;
-            }
-
-            .sync-buttons .btn {
-                min-width: 100%;
-            }
-
-            .tabs {
-                gap: 5px;
-                margin-bottom: 15px;
-            }
-
-            .tab {
-                padding: 8px;
-                font-size: 0.85rem;
-            }
-
-            .item {
-                padding: 10px;
-                flex-direction: column;
-                gap: 8px;
-                align-items: flex-start;
-            }
-
-            .item-actions {
-                width: 100%;
-            }
-
-            .item-actions .btn {
-                width: 100%;
-            }
-
-            .savings-item {
-                padding: 10px;
-                flex-direction: column;
-                gap: 8px;
-                align-items: flex-start;
-            }
-
-            .savings-item-actions {
-                width: 100%;
-            }
-
-            .savings-item-actions .btn {
-                width: 100%;
-            }
-
-            .allowance-display {
-                flex-direction: column;
-                gap: 8px;
-                align-items: flex-start;
-            }
-
-            .allowance-display .actions {
-                width: 100%;
-            }
-
-            .allowance-display .actions .btn {
-                width: 100%;
-            }
-
-            .total-row {
-                padding: 10px;
-                font-size: 0.9rem;
-            }
-
-            .savings-total {
-                padding: 10px;
-                font-size: 0.9rem;
-            }
-
-            .modal-content {
-                padding: 20px;
-                width: 95%;
-            }
-
-            .modal-content h3 {
-                font-size: 1.1rem;
-            }
-
-            .modal-content p {
-                font-size: 0.85rem;
-            }
-
-            .modal-content pre {
-                font-size: 0.7rem;
-            }
-
-            .modal-buttons {
-                flex-direction: column;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>오늘 뭐 먹지?</title>
+<style>
+  :root {
+    --sky: #38bdf8; --sky-dark: #0ea5e9; --sky-deeper: #0284c7;
+    --sky-light: #f0f9ff; --sky-border: #bae6fd; --sky-hover: #e0f2fe;
+    --text: #1e293b; --sub: #64748b; --bg: #f0f6fb; --card: #fff; --border: #e2e8f0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+  /* HEADER */
+  header { background: linear-gradient(135deg,var(--sky),var(--sky-dark)); color: #fff; padding: 13px 18px; padding-top: calc(13px + env(safe-area-inset-top)); display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 12px rgba(14,165,233,.3); position: sticky; top:0; z-index:50; }
+  header h1 { font-size:19px; font-weight:800; letter-spacing:-.3px; }
+
+  /* LAYOUT */
+  .wrap { display:flex; gap:14px; padding:14px; max-width:1200px; margin:0 auto; }
+  .left  { flex: 0 0 350px; }
+  .right { flex:1; min-width:0; display:flex; flex-direction:column; }
+
+  /* CARD */
+  .card { background:var(--card); border-radius:18px; padding:16px; box-shadow:0 2px 16px rgba(0,0,0,.07); margin-bottom:12px; }
+  .card-title { font-size:15px; font-weight:800; margin-bottom:2px; }
+  .card-sub   { font-size:12px; color:var(--sub); margin-bottom:12px; }
+
+  /* CALENDAR */
+  .cal-hd { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .cal-hd h2 { font-size:16px; font-weight:800; }
+  .cal-nav { background:var(--sky-light); border:none; font-size:14px; cursor:pointer; color:var(--sky-dark); padding:7px 12px; border-radius:10px; transition:.15s; }
+  .cal-nav:hover { background:var(--sky-border); }
+  .cal-days { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:4px; }
+  .dl { text-align:center; font-size:11px; font-weight:700; color:#94a3b8; padding:4px 0; }
+  .dl:first-child { color:#f87171; } .dl:last-child { color:var(--sky-dark); }
+  .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+  .cc { aspect-ratio:1; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; font-size:14px; font-weight:500; transition:.15s; position:relative; border:2px solid transparent; user-select:none; }
+  .cc:active { transform:scale(.9); }
+  .cc:hover { background:var(--sky-hover); }
+  .cc.empty { cursor:default; } .cc.empty:hover { background:none; transform:none; }
+  .cc.today { background:var(--sky); color:#fff; font-weight:800; } .cc.today:hover { background:var(--sky-dark); }
+  .cc.sel:not(.today) { border-color:var(--sky); background:var(--sky-light); }
+  .cc.has-meal { border-color:var(--sky); }
+  .cc.sun { color:#f87171; } .cc.sat { color:var(--sky-dark); }
+  .cc.today.sun,.cc.today.sat { color:#fff; }
+  .mdots { display:flex; gap:2px; margin-top:2px; }
+  .md { width:4px; height:4px; border-radius:50%; }
+  .md-b { background:#fbbf24; } .md-l { background:#34d399; } .md-d { background:#f472b6; }
+
+  /* DAY PANEL */
+  .dp { margin-top:12px; background:var(--sky-light); border-radius:14px; padding:14px; border:1.5px solid var(--sky-border); }
+  .dp-title { font-size:13px; font-weight:800; color:var(--sky-dark); margin-bottom:12px; }
+  .mb { margin-bottom:11px; }
+  .mh { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+  .mn { font-size:12px; font-weight:700; color:var(--sub); white-space:nowrap; min-width:50px; }
+  .toggle { display:flex; background:#e2e8f0; border-radius:8px; padding:2px; gap:2px; }
+  .tb { border:none; background:none; border-radius:6px; padding:4px 9px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; color:#64748b; transition:.15s; white-space:nowrap; }
+  .tb.on { background:#fff; color:var(--sky-dark); box-shadow:0 1px 4px rgba(0,0,0,.12); }
+  .mir { display:flex; gap:6px; align-items:center; }
+  .mi { flex:1; border:1.5px solid var(--border); border-radius:10px; padding:9px 11px; font-size:14px; font-family:inherit; outline:none; background:#fff; color:var(--text); min-width:0; transition:.2s; }
+  .mi::placeholder { color:#94a3b8; font-size:12px; }
+  .mi:focus { border-color:var(--sky); box-shadow:0 0 0 3px rgba(56,189,248,.15); }
+  .ur { display:flex; gap:6px; align-items:center; margin-top:5px; }
+  .ui { flex:1; border:1.5px solid var(--border); border-radius:10px; padding:8px 11px; font-size:12px; font-family:inherit; outline:none; background:#fff; color:var(--text); min-width:0; transition:.2s; }
+  .ui::placeholder { color:#94a3b8; }
+  .ui:focus { border-color:var(--sky); box-shadow:0 0 0 3px rgba(56,189,248,.15); }
+  .ib { background:var(--sky-light); border:1.5px solid var(--sky-border); border-radius:10px; padding:8px 10px; cursor:pointer; font-size:14px; color:var(--sky-dark); transition:.15s; flex-shrink:0; display:flex; align-items:center; justify-content:center; text-decoration:none; line-height:1; }
+  .ib:hover { background:var(--sky-border); }
+  .map-btns { display:flex; gap:5px; margin-top:5px; flex-wrap:wrap; }
+  .mapb { background:#f1f5f9; border:none; border-radius:8px; padding:5px 10px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; color:#475569; transition:.15s; }
+  .mapb:hover { background:#e2e8f0; }
+  .save-btn { width:100%; margin-top:6px; background:linear-gradient(135deg,var(--sky),var(--sky-dark)); color:#fff; border:none; border-radius:12px; padding:13px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:0 4px 12px rgba(14,165,233,.3); transition:.15s; }
+  .save-btn:active { transform:scale(.98); }
+  /* 링크 토글 버튼 */
+  .url-toggle-btn { background:none; border:none; color:var(--sky-dark); font-size:12px; font-weight:600; cursor:pointer; padding:4px 0 0; font-family:inherit; display:inline-flex; align-items:center; gap:3px; opacity:.8; }
+  .url-toggle-btn:hover { opacity:1; text-decoration:underline; }
+
+  /* SEARCH */
+  .search-row { display:flex; gap:8px; margin-bottom:12px; }
+  .search-in { flex:1; border:1.5px solid var(--border); border-radius:12px; padding:11px 14px; font-size:14px; font-family:inherit; outline:none; background:#f8fafc; color:var(--text); transition:.2s; min-width:0; }
+  .search-in:focus { border-color:var(--sky); background:#fff; box-shadow:0 0 0 3px rgba(56,189,248,.15); }
+  .search-in::placeholder { color:#94a3b8; }
+  .search-go { background:linear-gradient(135deg,var(--sky),var(--sky-dark)); color:#fff; border:none; border-radius:12px; padding:11px 16px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; flex-shrink:0; transition:opacity .15s; }
+  .search-go:hover { opacity:.9; }
+
+  /* RESULTS */
+  .results-header { font-size:12px; font-weight:700; color:var(--sub); margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; }
+  .results-list { display:flex; flex-direction:column; gap:7px; margin-bottom:12px; }
+  .result-item { display:flex; align-items:center; gap:10px; background:#f8fafc; border:1.5px solid var(--border); border-radius:12px; padding:11px 12px; transition:.15s; }
+  .result-item:hover { border-color:var(--sky); background:var(--sky-light); }
+  .ri-icon { font-size:20px; flex-shrink:0; width:28px; text-align:center; }
+  .ri-info { flex:1; min-width:0; }
+  .ri-name { font-size:13px; font-weight:700; color:var(--text); }
+  .ri-url  { font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+  .ri-btns { display:flex; gap:5px; flex-shrink:0; }
+  .ri-open { background:var(--sky); color:#fff; border:none; border-radius:8px; padding:6px 11px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; text-decoration:none; display:inline-flex; align-items:center; transition:.15s; white-space:nowrap; }
+  .ri-open:hover { background:var(--sky-dark); }
+  .ri-save { background:#f1f5f9; color:#475569; border:1.5px solid var(--border); border-radius:8px; padding:6px 10px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; transition:.15s; white-space:nowrap; }
+  .ri-save:hover { border-color:var(--sky); color:var(--sky-dark); background:var(--sky-light); }
+
+  /* PASTE SAVE */
+  .paste-section { border-top:1px solid var(--border); padding-top:12px; margin-top:4px; }
+  .paste-label { font-size:12px; font-weight:700; color:var(--sub); margin-bottom:7px; }
+  .paste-row { display:flex; gap:6px; }
+  .paste-in { flex:1; border:1.5px solid var(--border); border-radius:10px; padding:9px 12px; font-size:13px; font-family:inherit; outline:none; background:#f8fafc; color:var(--text); min-width:0; transition:.2s; }
+  .paste-in::placeholder { color:#94a3b8; font-size:12px; }
+  .paste-in:focus { border-color:var(--sky); background:#fff; box-shadow:0 0 0 3px rgba(56,189,248,.15); }
+  .paste-btn { background:var(--sky-light); border:1.5px solid var(--sky-border); border-radius:10px; padding:9px 14px; font-size:13px; font-weight:700; color:var(--sky-dark); cursor:pointer; font-family:inherit; flex-shrink:0; transition:.15s; }
+  .paste-btn:hover { background:var(--sky-border); }
+  .paste-name { width:100%; border:1.5px solid var(--border); border-radius:10px; padding:8px 12px; font-size:12px; font-family:inherit; outline:none; background:#f8fafc; color:var(--text); transition:.2s; margin-top:5px; display:block; }
+  .paste-name::placeholder { color:#94a3b8; }
+  .paste-name:focus { border-color:var(--sky); background:#fff; box-shadow:0 0 0 3px rgba(56,189,248,.15); }
+
+  /* FAVORITES */
+  .saved-empty { text-align:center; color:#94a3b8; font-size:13px; padding:20px 0; }
+  .saved-list { display:flex; flex-direction:column; gap:8px; }
+  .sl-item { display:flex; gap:10px; align-items:flex-start; background:#f8fafc; border:1.5px solid var(--border); border-radius:12px; padding:11px 12px; }
+  .sl-thumb { width:64px; height:48px; border-radius:8px; flex-shrink:0; background:#e2e8f0; display:flex; align-items:center; justify-content:center; font-size:22px; overflow:hidden; }
+  .sl-thumb img { width:100%; height:100%; object-fit:cover; border-radius:8px; }
+  .sl-info { flex:1; min-width:0; }
+  .sl-title { font-size:13px; font-weight:700; color:var(--text); margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sl-url   { font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:5px; }
+  .sl-meta  { display:flex; gap:5px; align-items:center; flex-wrap:wrap; }
+  .pl-badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:6px; }
+  .pl-youtube   { background:#fee2e2; color:#991b1b; }
+  .pl-naver     { background:#dcfce7; color:#14532d; }
+  .pl-instagram { background:#fce7f3; color:#831843; }
+  .pl-tiktok    { background:#f0fdf4; color:#065f46; }
+  .pl-recipe    { background:#fff7ed; color:#9a3412; }
+  .pl-web       { background:#f1f5f9; color:#475569; }
+  .sl-date { font-size:10px; color:#94a3b8; }
+  .sl-btns { display:flex; flex-direction:column; gap:5px; flex-shrink:0; }
+  .sl-open { background:var(--sky); color:#fff; border:none; border-radius:8px; padding:6px 10px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; text-decoration:none; display:block; text-align:center; transition:.15s; }
+  .sl-open:hover { background:var(--sky-dark); }
+  .sl-add { background:#f0fdf4; color:#065f46; border:1.5px solid #bbf7d0; border-radius:8px; padding:5px 8px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; transition:.15s; white-space:nowrap; }
+  .sl-add:hover { background:#dcfce7; }
+  .sl-del { background:#fff1f2; color:#be123c; border:1.5px solid #fecdd3; border-radius:8px; padding:5px 8px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; transition:.15s; }
+  .sl-del:hover { background:#ffe4e6; }
+
+  /* FAVORITES TABS */
+  .fav-tabs { display:flex; gap:6px; margin-bottom:12px; }
+  .fav-tab { flex:1; border:1.5px solid var(--border); background:#f8fafc; border-radius:10px; padding:9px 12px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; color:#64748b; transition:.15s; }
+  .fav-tab.on { background:var(--sky); color:#fff; border-color:var(--sky-dark); }
+  .fav-tab:hover:not(.on) { background:var(--sky-light); border-color:var(--sky-border); }
+
+  /* PASTE GROUP */
+  .paste-group { display:flex; gap:6px; margin-top:7px; }
+  .pg-btn { flex:1; border:1.5px solid var(--border); background:#f8fafc; border-radius:9px; padding:7px 10px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; color:#64748b; transition:.15s; }
+  .pg-btn.on { background:var(--sky-light); color:var(--sky-dark); border-color:var(--sky-border); }
+  .pg-btn:hover:not(.on) { background:#e2e8f0; }
+
+  /* RECIPE CARDS */
+  .rec-hd { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; gap:10px; }
+  .shuffle-btn { background:var(--sky-light); border:1.5px solid var(--sky-border); border-radius:10px; padding:7px 13px; font-size:12px; font-weight:700; color:var(--sky-dark); cursor:pointer; font-family:inherit; transition:.15s; flex-shrink:0; white-space:nowrap; }
+  .shuffle-btn:hover { background:var(--sky-border); }
+  .rec-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border:1.5px solid var(--border); border-radius:12px; margin-bottom:6px; transition:.15s; background:#fff; }
+  .rec-item:hover { border-color:var(--sky); background:var(--sky-light); }
+  .rec-item:last-child { margin-bottom:0; }
+  .rec-emoji { font-size:20px; flex-shrink:0; width:26px; text-align:center; }
+  .rec-info { flex:1; min-width:0; }
+  .rec-name { font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rec-cat-badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:6px; background:#f1f5f9; color:#475569; margin-top:2px; display:inline-block; }
+  .rec-actions { display:flex; gap:5px; flex-shrink:0; }
+  .rec-open { background:var(--sky); color:#fff; border:none; border-radius:8px; padding:6px 10px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; text-decoration:none; display:inline-flex; align-items:center; transition:.15s; white-space:nowrap; }
+  .rec-open:hover { background:var(--sky-dark); }
+  .rec-add { background:#f0fdf4; color:#065f46; border:1.5px solid #bbf7d0; border-radius:8px; padding:6px 8px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; transition:.15s; white-space:nowrap; }
+  .rec-add:hover { background:#dcfce7; }
+
+  /* SYNC STATUS */
+  .sync-wrap { margin-left:auto; display:flex; align-items:center; gap:8px; }
+  .sync-txt { font-size:11px; opacity:.85; color:#fff; }
+  .sync-btn { background:rgba(255,255,255,.18); border:none; border-radius:8px; padding:5px 10px; font-size:13px; color:#fff; cursor:pointer; transition:.15s; }
+  .sync-btn:hover { background:rgba(255,255,255,.3); }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:calc(28px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%) translateY(80px); background:#1e293b; color:#fff; padding:10px 20px; border-radius:30px; font-size:13px; font-weight:500; transition:transform .3s cubic-bezier(.34,1.56,.64,1); z-index:200; white-space:nowrap; box-shadow:0 4px 16px rgba(0,0,0,.2); }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+
+  /* DESKTOP card order: search → fav → recs */
+  @media(min-width:769px){
+    .card-search { order:1; }
+    .card-fav    { order:2; }
+    .card-recs   { order:3; }
+  }
+
+  /* MOBILE */
+  @media(max-width:768px){
+    .wrap { flex-direction:column; padding:10px; gap:10px; }
+    .left { flex:none; }
+    .card { padding:13px 12px; border-radius:16px; margin-bottom:10px; }
+    .mn { min-width:46px; }
+    .ri-url { display:none; }
+    /* mobile card order: recs → search → fav */
+    .card-recs   { order:1; }
+    .card-search { order:2; }
+    .card-fav    { order:3; }
+  }
+</style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1 id="budgetTitle" onclick="showTitleEditModal()">
-                💑 지민쀼 가계부
-                <span class="edit-title-icon">✏️</span>
-            </h1>
-            <p>함께 만드는 행복한 가정경제</p>
-            <div class="month-selector">
-                <div class="year-controls">
-                    <button onclick="changeYear(-1)" title="전년도">▲</button>
-                    <select id="yearSelect" onchange="selectYear()"></select>
-                    <button onclick="changeYear(1)" title="다음년도">▼</button>
-                </div>
-                <span class="separator">|</span>
-                <div class="month-controls">
-                    <button onclick="changeMonth(-1)" title="이전월">◀</button>
-                    <select id="monthSelect" onchange="selectMonth()"></select>
-                    <button onclick="changeMonth(1)" title="다음월">▶</button>
-                </div>
-            </div>
-        </header>
+<header>
+  <span style="font-size:22px">🍽️</span>
+  <h1>오늘 뭐 먹지?</h1>
+  <div class="sync-wrap">
+    <span class="sync-txt" id="sync-status"></span>
+    <button class="sync-btn" onclick="loadFromSheet()" title="최신 데이터 불러오기">🔄</button>
+  </div>
+</header>
 
-        <!-- Total Summary Section -->
-        <div class="total-summary">
-            <h2>📊 월별 총 요약</h2>
-            <div class="total-summary-grid">
-                <div class="total-item income">
-                    <label>💵 총 수입</label>
-                    <div class="value" id="summaryIncome">₩0</div>
-                </div>
-                <div class="total-item expense">
-                    <label>📉 총 지출</label>
-                    <div class="value" id="summaryExpense">₩0</div>
-                </div>
-                <div class="total-item balance">
-                    <label>💰 수지</label>
-                    <div class="value" id="summaryBalance">₩0</div>
-                </div>
-                <div class="total-item savings">
-                    <label>🎯 저축률</label>
-                    <div class="value" id="summarySavings">0%</div>
-                </div>
-            </div>
-            <div class="expense-breakdown">
-                <div class="expense-item">
-                    <label>🏠 고정비용</label>
-                    <div class="value" id="summaryFixed">₩0</div>
-                </div>
-                <div class="expense-item">
-                    <label>🏦 대출이자</label>
-                    <div class="value" id="summaryLoan">₩0</div>
-                </div>
-                <div class="expense-item">
-                    <label>👫 용돈</label>
-                    <div class="value" id="summaryAllowance">₩0</div>
-                </div>
-                <div class="expense-item">
-                    <label>🛒 변동비용</label>
-                    <div class="value" id="summaryVariable">₩0</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Navigation Buttons -->
-        <div class="nav-buttons">
-            <button class="nav-btn primary" onclick="copyFromPreviousMonth()">이전 달에서 가져오기</button>
-            <button class="nav-btn secondary" onclick="resetCurrentMonth()">이번 달 초기화</button>
-        </div>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Income Section -->
-            <div class="section income-section">
-                <h2><span class="icon">💵</span> 수입 관리</h2>
-                <div class="form-group">
-                    <label>항목 선택</label>
-                    <select id="incomeSelect" onchange="handleSelectChange('income', this.value)">
-                        <option value="">항목을 선택하세요</option>
-                        <option value="남편 월급">남편 월급</option>
-                        <option value="아내 월급">아내 월급</option>
-                        <option value="보너스">보너스</option>
-                        <option value="부수입">부수입</option>
-                        <option value="이자소득">이자소득</option>
-                        <option value="기타">기타</option>
-                    </select>
-                    <input type="text" id="incomeName" class="custom-input" placeholder="직접 입력하세요">
-                </div>
-                <div class="form-group">
-                    <label>금액</label>
-                    <input type="text" id="incomeAmount" placeholder="0" onkeyup="formatInput(this)" onfocus="selectInput(this)" onkeypress="handleEnter(event, 'income')">
-                </div>
-                <button class="btn btn-primary" onclick="addItem('income')">추가하기</button>
-                <div class="item-list" id="incomeList"></div>
-                <div class="total-row">
-                    <span>수입 합계</span>
-                    <span id="incomeTotal">₩0</span>
-                </div>
-            </div>
-
-            <!-- Fixed Expenses Section -->
-            <div class="section expense-section fixed-section">
-                <h2><span class="icon">🏠</span> 고정비용 관리</h2>
-                <div class="form-group">
-                    <label>항목 선택</label>
-                    <select id="fixedSelect" onchange="handleSelectChange('fixed', this.value)">
-                        <option value="">항목을 선택하세요</option>
-                        <option value="월세">월세</option>
-                        <option value="관리비">관리비</option>
-                        <option value="전기세">전기세</option>
-                        <option value="가스비">가스비</option>
-                        <option value="수도세">수도세</option>
-                        <option value="인터넷/TV">인터넷/TV</option>
-                        <option value="휴대폰">휴대폰</option>
-                        <option value="보험료">보험료</option>
-                        <option value="구독서비스">구독서비스</option>
-                        <option value="기타">기타</option>
-                    </select>
-                    <input type="text" id="fixedName" class="custom-input" placeholder="직접 입력하세요">
-                </div>
-                <div class="form-group">
-                    <label>금액</label>
-                    <input type="text" id="fixedAmount" placeholder="0" onkeyup="formatInput(this)" onfocus="selectInput(this)" onkeypress="handleEnter(event, 'fixed')">
-                </div>
-                <button class="btn btn-primary" onclick="addItem('fixed')">추가하기</button>
-                <div class="item-list" id="fixedList"></div>
-                <div class="total-row">
-                    <span>고정비용 합계</span>
-                    <span id="fixedTotal">₩0</span>
-                </div>
-            </div>
-
-            <!-- Loan Interest Section -->
-            <div class="section expense-section loan-section">
-                <h2><span class="icon">🏦</span> 대출이자 관리</h2>
-                <div class="form-group">
-                    <label>항목 선택</label>
-                    <select id="loanSelect" onchange="handleSelectChange('loan', this.value)">
-                        <option value="">항목을 선택하세요</option>
-                        <option value="주택담보대출">주택담보대출</option>
-                        <option value="전세자금대출">전세자금대출</option>
-                        <option value="신용대출">신용대출</option>
-                        <option value="자동차대출">자동차대출</option>
-                        <option value="기타">기타</option>
-                    </select>
-                    <input type="text" id="loanName" class="custom-input" placeholder="직접 입력하세요">
-                </div>
-                <div class="form-group">
-                    <label>금액</label>
-                    <input type="text" id="loanAmount" placeholder="0" onkeyup="formatInput(this)" onfocus="selectInput(this)" onkeypress="handleEnter(event, 'loan')">
-                </div>
-                <button class="btn btn-primary" onclick="addItem('loan')">추가하기</button>
-                <div class="item-list" id="loanList"></div>
-                <div class="total-row">
-                    <span>대출이자 합계</span>
-                    <span id="loanTotal">₩0</span>
-                </div>
-            </div>
-
-            <!-- Allowance Section -->
-            <div class="section expense-section allowance-section">
-                <h2><span class="icon">👫</span> 용돈 관리</h2>
-                <div class="tabs">
-                    <button class="tab active" onclick="switchTab('husband')">남편</button>
-                    <button class="tab" onclick="switchTab('wife')">아내</button>
-                </div>
-                
-                <div class="tab-content active" id="husbandTab">
-                    <div class="form-group">
-                        <label>남편 용돈 금액</label>
-                        <input type="text" id="husbandAllowance" placeholder="0" onkeyup="formatInput(this)" onfocus="selectInput(this)" onkeypress="handleEnterAllowance(event, 'husband')">
-                    </div>
-                    <button class="btn btn-primary" onclick="setAllowance('husband')">설정하기</button>
-                    <div class="item-list" id="husbandList">
-                        <div class="allowance-display">
-                            <span class="name">남편 용돈</span>
-                            <span class="amount" id="husbandDisplay">₩0</span>
-                            <div class="actions">
-                                <button class="btn btn-danger" onclick="resetAllowance('husband')">초기화</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="tab-content" id="wifeTab">
-                    <div class="form-group">
-                        <label>아내 용돈 금액</label>
-                        <input type="text" id="wifeAllowance" placeholder="0" onkeyup="formatInput(this)" onfocus="selectInput(this)" onkeypress="handleEnterAllowance(event, 'wife')">
-                    </div>
-                    <button class="btn btn-primary" onclick="setAllowance('wife')">설정하기</button>
-                    <div class="item-list" id="wifeList">
-                        <div class="allowance-display">
-                            <span class="name">아내 용돈</span>
-                            <span class="amount" id="wifeDisplay">₩0</span>
-                            <div class="actions">
-                                <button class="btn btn-danger" onclick="resetAllowance('wife')">초기화</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="total-row">
-                    <span>용돈 합계</span>
-                    <span id="allowanceTotal">₩0</span>
-                </div>
-            </div>
-
-            <!-- Variable Expenses Section -->
-            <div class="section expense-section">
-                <h2><span class="icon">🛒</span> 변동비용 관리</h2>
-                <div class="form-group">
-                    <label>항목 선택</label>
-                    <select id="variableSelect" onchange="handleSelectChange('variable', this.value)">
-                        <option value="">항목을 선택하세요</option>
-                        <option value="식비">식비</option>
-                        <option value="교통비">교통비</option>
-                        <option value="의류비">의류비</option>
-                        <option value="의료비">의료비</option>
-                        <option value="교육비">교육비</option>
-                        <option value="외식비">외식비</option>
-                        <option value="문화생활">문화생활</option>
-                        <option value="선물/경조사">선물/경조사</option>
-                        <option value="주유비">주유비</option>
-                        <option value="마트/장보기">마트/장보기</option>
-                        <option value="기타">기타</option>
-                    </select>
-                    <input type="text" id="variableName" class="custom-input" placeholder="직접 입력하세요">
-                </div>
-                <div class="form-group">
-                    <label>금액</label>
-                    <input type="text" id="variableAmount" placeholder="0" onkeyup="formatInput(this)" onfocus="selectInput(this)" onkeypress="handleEnter(event, 'variable')">
-                </div>
-                <button class="btn btn-primary" onclick="addItem('variable')">추가하기</button>
-                <div class="item-list" id="variableList"></div>
-                <div class="total-row">
-                    <span>변동비용 합계</span>
-                    <span id="variableTotal">₩0</span>
-                </div>
-            </div>
-
-            <!-- Savings & Investment Section -->
-            <div class="section">
-                <h2><span class="icon">🎯</span> 저축/투자 관리</h2>
-                <div class="form-group">
-                    <label>항목 선택</label>
-                    <select id="savingsSelect" onchange="handleSelectChange('savings', this.value)">
-                        <option value="">항목을 선택하세요</option>
-                        <option value="적금">적금</option>
-                        <option value="주식">주식</option>
-                        <option value="펀드">펀드</option>
-                        <option value="ETF">ETF</option>
-                        <option value="가상화폐">가상화폐</option>
-                        <option value="연금저축">연금저축</option>
-                        <option value="ISA">ISA</option>
-                        <option value="기타">기타</option>
-                    </select>
-                    <input type="text" id="savingsName" class="custom-input" placeholder="직접 입력하세요 (예: XXX 적금)">
-                </div>
-                <div class="form-group">
-                    <label>금액</label>
-                    <input type="text" id="savingsAmount" placeholder="0" onkeyup="formatInput(this)" onfocus="selectInput(this)" onkeypress="handleEnter(event, 'savings')">
-                </div>
-                <button class="btn btn-primary" onclick="addItem('savings')">추가하기</button>
-                <div class="savings-list-section" id="savingsList"></div>
-                <div class="savings-total">
-                    <span>저축/투자 합계</span>
-                    <span id="savingsTotal">₩0</span>
-                </div>
-                <div class="savings-goal" style="margin-top: 20px;">
-                    <label>💰 현재 수지 현황</label>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span id="currentSavings">₩0</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-                    </div>
-                    <p style="text-align: center; margin-top: 10px; color: #666;" id="progressText">수지 현황</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Month History -->
-        <div class="month-history">
-            <h2>📅 월별 내역</h2>
-            <div class="history-grid" id="historyGrid"></div>
-        </div>
-
-        <!-- Year Summary -->
-        <div class="year-summary">
-            <h2>📈 <span id="yearSummaryTitle">2024 년</span> 연간 요약</h2>
-            <div class="year-summary-grid">
-                <div class="year-item income">
-                    <label>💵 연간 총 수입</label>
-                    <div class="value" id="yearIncome">₩0</div>
-                </div>
-                <div class="year-item expense">
-                    <label>📉 연간 총 지출</label>
-                    <div class="value" id="yearExpense">₩0</div>
-                </div>
-                <div class="year-item balance">
-                    <label>💰 연간 수지</label>
-                    <div class="value" id="yearBalance">₩0</div>
-                </div>
-                <div class="year-item savings">
-                    <label>🎯 연평균 저축률</label>
-                    <div class="value" id="yearSavings">0%</div>
-                </div>
-            </div>
-            <div class="year-breakdown">
-                <div class="year-expense-item">
-                    <label>🏠 고정비용</label>
-                    <div class="value" id="yearFixed">₩0</div>
-                </div>
-                <div class="year-expense-item">
-                    <label>🏦 대출이자</label>
-                    <div class="value" id="yearLoan">₩0</div>
-                </div>
-                <div class="year-expense-item">
-                    <label>👫 용돈</label>
-                    <div class="value" id="yearAllowance">₩0</div>
-                </div>
-                <div class="year-expense-item">
-                    <label>🛒 변동비용</label>
-                    <div class="value" id="yearVariable">₩0</div>
-                </div>
-            </div>
-            <table class="monthly-table">
-                <thead>
-                    <tr>
-                        <th>월</th>
-                        <th>수입</th>
-                        <th>지출</th>
-                        <th>수지</th>
-                        <th>저축률</th>
-                    </tr>
-                </thead>
-                <tbody id="monthlyTableBody">
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Cloud Sync Section (Moved to Bottom) -->
-        <div class="cloud-sync-section">
-            <h2><span class="icon">☁️</span> 클라우드 동기화</h2>
-            <div class="sync-status">
-                <div class="sync-status-indicator disconnected" id="syncIndicator"></div>
-                <span id="syncStatusText">로컬 모드 (클라우드 연결 안됨)</span>
-            </div>
-            <div class="sync-buttons">
-                <button class="btn btn-primary" onclick="showConfigModal()">클라우드 설정</button>
-                <button class="btn btn-primary" onclick="uploadToCloud()">업로드</button>
-                <button class="btn btn-primary" onclick="downloadFromCloud()">다운로드</button>
-            </div>
-            <div class="config-section" id="configSection" style="display: none;">
-                <input type="text" id="spreadsheetId" placeholder="Google 스프레드시트 ID 입력">
-                <input type="text" id="scriptUrl" placeholder="Google Apps Script 웹앱 URL 입력">
-                <button class="btn btn-primary" onclick="saveConfig()">설정 저장</button>
-            </div>
-        </div>
+<div class="wrap">
+<!-- ══ LEFT ══ -->
+<div class="left">
+  <div class="card">
+    <div class="cal-hd">
+      <button class="cal-nav" onclick="changeMonth(-1)">◀</button>
+      <h2 id="cal-title"></h2>
+      <button class="cal-nav" onclick="changeMonth(1)">▶</button>
     </div>
-
-    <!-- Title Edit Modal -->
-    <div class="modal" id="titleEditModal">
-        <div class="modal-content">
-            <h3>📝 가계부 이름 수정</h3>
-            <p>가계부 이름을 입력해주세요. (최대 30 자)</p>
-            <input type="text" class="title-input" id="titleInput" placeholder="가계부 이름 입력" maxlength="30">
-            <div class="modal-buttons">
-                <button class="btn btn-primary" onclick="saveTitle()">저장</button>
-                <button class="btn btn-secondary" onclick="closeTitleEditModal()">취소</button>
-            </div>
-        </div>
+    <div class="cal-days">
+      <div class="dl">일</div><div class="dl">월</div><div class="dl">화</div>
+      <div class="dl">수</div><div class="dl">목</div><div class="dl">금</div><div class="dl">토</div>
     </div>
+    <div class="cal-grid" id="cal-grid"></div>
 
-    <!-- Config Modal -->
-    <div class="modal" id="configModal">
-        <div class="modal-content">
-            <h3>☁️ 클라우드 동기화 설정</h3>
-            <p style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                <strong>간편 설정 방법:</strong><br>
-                1. 아래 Google Apps Script 코드를 복사합니다<br>
-                2. <a href="https://script.google.com/" target="_blank">Google Apps Script</a> 에서 새 프로젝트 생성<br>
-                3. 코드를 붙여넣고 저장합니다<br>
-                4. "배포" > "새 배포" > "웹 앱" 선택<br>
-                5. "실행자"를 "나"로, "액세스 권한"을 <strong>"모든 사용자"</strong>로 설정 후 배포<br>
-                6. 생성된 웹 앱 URL 을 아래에 입력합니다
-            </p>
-            <pre style="background:#f5f5f5;padding:10px;border-radius:5px;overflow-x:auto;font-size:0.75rem;max-height:300px;overflow-y:auto;">
-// Google Apps Script 코드 (수정됨 - 2026.04.30 v2)
-// JSON 바디를 처리하는 방식 - POST 와 GET 모두 지원
+    <!-- Day Panel -->
+    <div class="dp" id="dp" style="display:none">
+      <div class="dp-title" id="dp-title"></div>
 
-function doGet(e) {
+      <!-- 아침 -->
+      <div class="mb" id="blk-breakfast">
+        <div class="mh">
+          <span class="mn">🌅&nbsp;아침</span>
+          <div class="toggle">
+            <button class="tb on" onclick="setType('breakfast','home',this)">집밥</button>
+            <button class="tb"    onclick="setType('breakfast','out',this)">외식</button>
+          </div>
+        </div>
+        <div id="home-breakfast">
+          <div class="mir">
+            <input class="mi" id="txt-breakfast" placeholder="먹은 것 입력…">
+            <button class="ib" onclick="qs('breakfast')" title="레시피 검색">🔍</button>
+          </div>
+          <button class="url-toggle-btn" id="home-url-toggle-breakfast" onclick="toggleHomeUrl('breakfast')">🔗 링크 추가</button>
+          <div class="ur" id="home-url-row-breakfast" style="display:none">
+            <input class="ui" id="home-url-breakfast" placeholder="레시피 링크 붙여넣기…" oninput="updHomeOpen('breakfast',this.value)">
+            <a class="ib" id="home-opn-breakfast" href="#" target="_blank" style="opacity:.4;pointer-events:none">↗</a>
+          </div>
+        </div>
+        <div id="out-breakfast" style="display:none">
+          <div class="mir"><input class="mi" id="pl-breakfast" placeholder="음식점 이름"></div>
+          <div class="ur">
+            <input class="ui" id="url-breakfast" placeholder="링크 붙여넣기…" oninput="updOpen('breakfast',this.value)">
+            <a class="ib" id="opn-breakfast" href="#" target="_blank" style="opacity:.4;pointer-events:none">↗</a>
+          </div>
+          <div class="map-btns">
+            <button class="mapb" onclick="smap('breakfast','naver')">🗺 네이버지도</button>
+            <button class="mapb" onclick="smap('breakfast','kakao')">🟡 카카오맵</button>
+            <button class="mapb" onclick="smap('breakfast','google')">📍 구글</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 점심 -->
+      <div class="mb" id="blk-lunch">
+        <div class="mh">
+          <span class="mn">☀️&nbsp;점심</span>
+          <div class="toggle">
+            <button class="tb on" onclick="setType('lunch','home',this)">집밥</button>
+            <button class="tb"    onclick="setType('lunch','out',this)">외식</button>
+          </div>
+        </div>
+        <div id="home-lunch">
+          <div class="mir">
+            <input class="mi" id="txt-lunch" placeholder="먹은 것 입력…">
+            <button class="ib" onclick="qs('lunch')" title="레시피 검색">🔍</button>
+          </div>
+          <button class="url-toggle-btn" id="home-url-toggle-lunch" onclick="toggleHomeUrl('lunch')">🔗 링크 추가</button>
+          <div class="ur" id="home-url-row-lunch" style="display:none">
+            <input class="ui" id="home-url-lunch" placeholder="레시피 링크 붙여넣기…" oninput="updHomeOpen('lunch',this.value)">
+            <a class="ib" id="home-opn-lunch" href="#" target="_blank" style="opacity:.4;pointer-events:none">↗</a>
+          </div>
+        </div>
+        <div id="out-lunch" style="display:none">
+          <div class="mir"><input class="mi" id="pl-lunch" placeholder="음식점 이름"></div>
+          <div class="ur">
+            <input class="ui" id="url-lunch" placeholder="링크 붙여넣기…" oninput="updOpen('lunch',this.value)">
+            <a class="ib" id="opn-lunch" href="#" target="_blank" style="opacity:.4;pointer-events:none">↗</a>
+          </div>
+          <div class="map-btns">
+            <button class="mapb" onclick="smap('lunch','naver')">🗺 네이버지도</button>
+            <button class="mapb" onclick="smap('lunch','kakao')">🟡 카카오맵</button>
+            <button class="mapb" onclick="smap('lunch','google')">📍 구글</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 저녁 -->
+      <div class="mb" id="blk-dinner">
+        <div class="mh">
+          <span class="mn">🌙&nbsp;저녁</span>
+          <div class="toggle">
+            <button class="tb on" onclick="setType('dinner','home',this)">집밥</button>
+            <button class="tb"    onclick="setType('dinner','out',this)">외식</button>
+          </div>
+        </div>
+        <div id="home-dinner">
+          <div class="mir">
+            <input class="mi" id="txt-dinner" placeholder="먹은 것 입력…">
+            <button class="ib" onclick="qs('dinner')" title="레시피 검색">🔍</button>
+          </div>
+          <button class="url-toggle-btn" id="home-url-toggle-dinner" onclick="toggleHomeUrl('dinner')">🔗 링크 추가</button>
+          <div class="ur" id="home-url-row-dinner" style="display:none">
+            <input class="ui" id="home-url-dinner" placeholder="레시피 링크 붙여넣기…" oninput="updHomeOpen('dinner',this.value)">
+            <a class="ib" id="home-opn-dinner" href="#" target="_blank" style="opacity:.4;pointer-events:none">↗</a>
+          </div>
+        </div>
+        <div id="out-dinner" style="display:none">
+          <div class="mir"><input class="mi" id="pl-dinner" placeholder="음식점 이름"></div>
+          <div class="ur">
+            <input class="ui" id="url-dinner" placeholder="링크 붙여넣기…" oninput="updOpen('dinner',this.value)">
+            <a class="ib" id="opn-dinner" href="#" target="_blank" style="opacity:.4;pointer-events:none">↗</a>
+          </div>
+          <div class="map-btns">
+            <button class="mapb" onclick="smap('dinner','naver')">🗺 네이버지도</button>
+            <button class="mapb" onclick="smap('dinner','kakao')">🟡 카카오맵</button>
+            <button class="mapb" onclick="smap('dinner','google')">📍 구글</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="save-btn" onclick="saveMeal()">저장하기 ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RIGHT ══ -->
+<div class="right">
+
+  <!-- 오늘의 추천 레시피 (모바일: 1순위) -->
+  <div class="card card-recs">
+    <div class="rec-hd">
+      <div>
+        <div class="card-title">오늘의 추천 레시피 🍳</div>
+        <div class="card-sub">만개의레시피 인기 레시피 · 매일 새로 바뀌어요</div>
+      </div>
+      <button class="shuffle-btn" onclick="shuffleRecs()">🔀 다시보기</button>
+    </div>
+    <div id="recs-list"></div>
+  </div>
+
+  <!-- 레시피 검색 (모바일: 2순위) -->
+  <div class="card card-search">
+    <div class="card-title">레시피 검색 🔎</div>
+    <div class="card-sub">원하는 요리를 검색하고 레시피 링크를 즐겨찾기에 저장하세요</div>
+    <div class="search-row">
+      <input class="search-in" id="sq" placeholder="요리 이름 검색… 예) 된장찌개, 마라탕" onkeydown="if(event.key==='Enter')doSearch()">
+      <button class="search-go" onclick="doSearch()">🔍 검색</button>
+    </div>
+    <div id="results-wrap" style="display:none">
+      <div class="results-header">
+        <span id="results-label"></span>
+        <span style="font-size:11px;color:#94a3b8">새 탭에서 열기</span>
+      </div>
+      <div class="results-list" id="results-list"></div>
+    </div>
+    <!-- URL 직접 저장 -->
+    <div class="paste-section">
+      <div class="paste-label">📎 링크 직접 저장</div>
+      <div class="paste-row">
+        <input class="paste-in" id="paste-url" placeholder="URL 붙여넣기 (유튜브, 블로그, 인스타…)">
+        <button class="paste-btn" onclick="pasteAndSave()">저장 ★</button>
+      </div>
+      <input class="paste-name" id="paste-title" placeholder="이름 (선택 — 빈칸이면 자동 설정)">
+      <div class="paste-group">
+        <button class="pg-btn on" id="pg-toTry" onclick="setPasteGroup('toTry',this)">📌 인증할 레시피</button>
+        <button class="pg-btn" id="pg-verified" onclick="setPasteGroup('verified',this)">✅ 인증된 레시피</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 즐겨찾기 (모바일: 3순위) -->
+  <div class="card card-fav">
+    <div class="card-title">즐겨찾기 🌟 <span id="fav-count" style="font-size:12px;font-weight:500;color:var(--sub)"></span></div>
+    <div class="card-sub">레시피 링크를 그룹별로 관리해요</div>
+    <div class="fav-tabs">
+      <button class="fav-tab on" onclick="setFavTab('toTry',this)">📌 인증할 레시피</button>
+      <button class="fav-tab" onclick="setFavTab('verified',this)">✅ 인증된 레시피</button>
+    </div>
+    <div id="fav-list"></div>
+  </div>
+
+</div><!-- end right -->
+</div><!-- end wrap -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══ GOOGLE SHEETS 연동 설정 ══
+// Apps Script 배포 후 URL을 아래에 붙여넣으세요
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzvo-68JjTWrFG40AMIYRSbJzANuAK0B7b7VMyNEkhAfmYPTwj7hRSSQAWjn9OOtTl6lw/exec';
+// 예시: 'https://script.google.com/macros/s/AKfy.../exec'
+
+function setSyncStatus(msg, type) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = type === 'ok' ? '#a7f3d0' : type === 'err' ? '#fca5a5' : '#e0f2fe';
+}
+
+let syncDebounce = null;
+function syncToSheet() {
+  if (!SCRIPT_URL || SCRIPT_URL === 'YOUR_SCRIPT_URL') return;
+  clearTimeout(syncDebounce);
+  syncDebounce = setTimeout(() => {
+    setSyncStatus('동기화 중…', 'ing');
+    const fd = new FormData();
+    fd.append('data', JSON.stringify({meals, favorites}));
+    fetch(SCRIPT_URL, {method:'POST', body:fd, mode:'no-cors'})
+      .then(() => setSyncStatus('✓ 동기화됨', 'ok'))
+      .catch(() => setSyncStatus('⚠ 저장 실패', 'err'));
+  }, 800);
+}
+
+async function loadFromSheet() {
+  if (!SCRIPT_URL || SCRIPT_URL === 'YOUR_SCRIPT_URL') return;
+  setSyncStatus('불러오는 중…', 'ing');
   try {
-    var spreadsheetId = e.parameter.spreadsheetId;
-    if (!spreadsheetId) {
-      return createJsonResponse({
-        result: 'error',
-        message: 'spreadsheetId 가 필요합니다.'
-      });
+    const res = await fetch(SCRIPT_URL + '?action=get&t=' + Date.now());
+    const data = await res.json();
+    if (data.meals) {
+      Object.keys(data.meals).forEach(k => { meals[k] = data.meals[k]; });
+      localStorage.setItem('meals2', JSON.stringify(meals));
     }
-    
-    var ss = SpreadsheetApp.openById(spreadsheetId);
-    var sheet = ss.getSheetByName('Data');
-    
-    if (!sheet) {
-      sheet = ss.insertSheet('Data');
+    if (data.favorites) {
+      favorites = data.favorites;
+      localStorage.setItem('favorites', JSON.stringify(favorites));
     }
-    
-    var value = sheet.getRange('A1').getValue();
-    
-    if (e.parameter.action === 'load') {
-      var data = value ? JSON.parse(value) : {};
-      return createJsonResponse({
-        result: 'success',
-        data: data
-      });
+    setSyncStatus('✓ 동기화됨', 'ok');
+    renderCal();
+    renderFavorites();
+    if (selKey) {
+      const [y,m,d] = selKey.split('-').map(Number);
+      selDay(y, m-1, d, selKey);
     }
-    
-    return createJsonResponse({
-      result: 'error',
-      message: 'Invalid action'
-    });
-  } catch (error) {
-    return createJsonResponse({
-      result: 'error',
-      message: 'Error: ' + error.toString()
-    });
+  } catch(e) {
+    setSyncStatus('오프라인 모드', 'err');
   }
 }
 
-function doPost(e) {
-  try {
-    // JSON 바디에서 데이터 파싱
-    var postData = JSON.parse(e.postData.contents);
-    var spreadsheetId = postData.spreadsheetId;
-    var action = postData.action;
-    var data = postData.data;
-    
-    if (!spreadsheetId) {
-      return createJsonResponse({
-        result: 'error',
-        message: 'spreadsheetId 가 필요합니다.'
-      });
+// ══ RECIPE POOL ══
+const RECIPE_POOL = [
+  {id:'1785098',  name:'돼지고기 김치찌개',      cat:'찌개', emoji:'🥘'},
+  {id:'6912220',  name:'순두부찌개 황금레시피',   cat:'찌개', emoji:'🫕'},
+  {id:'6859263',  name:'매콤 된장찌개',           cat:'찌개', emoji:'🥘'},
+  {id:'6850626',  name:'된장찌개 맛있게 끓이기',  cat:'찌개', emoji:'🥘'},
+  {id:'6864674',  name:'참치 김치찌개',           cat:'찌개', emoji:'🥫'},
+  {id:'6873683',  name:'소고기 미역국',           cat:'국',   emoji:'🍲'},
+  {id:'6905196',  name:'맑은 콩나물국',           cat:'국',   emoji:'🌱'},
+  {id:'6884636',  name:'부대찌개',               cat:'찌개', emoji:'🥘'},
+  {id:'6935659',  name:'명란 두부찌개',           cat:'찌개', emoji:'🥚'},
+  {id:'6945458',  name:'배추닭국',               cat:'국',   emoji:'🍗'},
+  {id:'6961294',  name:'김치찌개 황금레시피',     cat:'찌개', emoji:'🌶️'},
+  {id:'6905743',  name:'제육볶음 황금레시피',     cat:'볶음', emoji:'🥩'},
+  {id:'6845428',  name:'제육볶음 기사식당st',     cat:'볶음', emoji:'🥩'},
+  {id:'6903507',  name:'백종원 오징어볶음',       cat:'볶음', emoji:'🦑'},
+  {id:'6870391',  name:'매콤달콤 오징어볶음',     cat:'볶음', emoji:'🦑'},
+  {id:'6876357',  name:'닭볶음탕 황금레시피',     cat:'볶음', emoji:'🍗'},
+  {id:'6884873',  name:'닭도리탕 황금레시피',     cat:'볶음', emoji:'🍗'},
+  {id:'6872975',  name:'소세지야채볶음',          cat:'볶음', emoji:'🌭'},
+  {id:'6917883',  name:'백종원 가지볶음',         cat:'반찬', emoji:'🍆'},
+  {id:'6923068',  name:'김치볶음밥',             cat:'밥',   emoji:'🍚'},
+  {id:'6928209',  name:'닭갈비',                 cat:'볶음', emoji:'🍗'},
+  {id:'6963110',  name:'가지 스테이크',           cat:'메인', emoji:'🍆'},
+  {id:'6944180',  name:'돼지불백',               cat:'구이', emoji:'🥩'},
+  {id:'6948608',  name:'지코바 치킨',             cat:'구이', emoji:'🍗'},
+  {id:'6940325',  name:'닭봉 간장조림',           cat:'반찬', emoji:'🍗'},
+  {id:'6897261',  name:'백종원 오이무침',         cat:'반찬', emoji:'🥒'},
+  {id:'6907661',  name:'즉석 아삭 오이무침',      cat:'반찬', emoji:'🥒'},
+  {id:'6906655',  name:'두부조림',               cat:'반찬', emoji:'🟫'},
+  {id:'6891526',  name:'두부조림 양념장',         cat:'반찬', emoji:'🟫'},
+  {id:'6867256',  name:'백종원 콩나물무침',       cat:'반찬', emoji:'🌱'},
+  {id:'6881457',  name:'바삭 고소한 멸치볶음',    cat:'반찬', emoji:'🐟'},
+  {id:'6891816',  name:'간장 멸치볶음',           cat:'반찬', emoji:'🐟'},
+  {id:'5407249',  name:'국민반찬 어묵볶음',       cat:'반찬', emoji:'🍢'},
+  {id:'6874546',  name:'간장감자조림',            cat:'반찬', emoji:'🥔'},
+  {id:'6893285',  name:'무생채',                 cat:'반찬', emoji:'🥬'},
+  {id:'6896175',  name:'백종원 오이소박이',       cat:'반찬', emoji:'🥒'},
+  {id:'4007561',  name:'감자채볶음',             cat:'반찬', emoji:'🥔'},
+  {id:'6867849',  name:'진미채볶음',             cat:'반찬', emoji:'🦑'},
+  {id:'6867380',  name:'상추겉절이',             cat:'반찬', emoji:'🥬'},
+  {id:'6984517',  name:'스팸감자조림',            cat:'반찬', emoji:'🥓'},
+  {id:'6956266',  name:'팽이버섯조림',            cat:'반찬', emoji:'🍄'},
+  {id:'6870224',  name:'오이지무침',             cat:'반찬', emoji:'🥒'},
+  {id:'6951679',  name:'구운 가지호박무침',       cat:'반찬', emoji:'🍆'},
+  {id:'6837778',  name:'감자샐러드',             cat:'반찬', emoji:'🥗'},
+  {id:'6961139',  name:'백종원 다시마쌈장',       cat:'반찬', emoji:'🌿'},
+  {id:'6960955',  name:'대파김치',               cat:'김치', emoji:'🧅'},
+  {id:'6876121',  name:'밥도둑 깻잎김치',         cat:'김치', emoji:'🌿'},
+  {id:'6933967',  name:'열무김치',               cat:'김치', emoji:'🌿'},
+  {id:'6875654',  name:'양파장아찌',             cat:'반찬', emoji:'🧅'},
+  {id:'6915654',  name:'마늘장아찌',             cat:'반찬', emoji:'🧄'},
+  {id:'6896908',  name:'비빔국수 황금레시피',     cat:'면',   emoji:'🍜'},
+  {id:'6867157',  name:'야식 비빔국수',           cat:'면',   emoji:'🍜'},
+  {id:'6885928',  name:'김치 비빔국수',           cat:'면',   emoji:'🍜'},
+  {id:'6836180',  name:'잔치국수 황금레시피',     cat:'면',   emoji:'🍜'},
+  {id:'6913492',  name:'잔치국수 (멸치육수)',     cat:'면',   emoji:'🍜'},
+  {id:'6894096',  name:'백종원 떡볶이',           cat:'분식', emoji:'🌶️'},
+  {id:'7035971',  name:'라면 팟타이',             cat:'면',   emoji:'🍜'},
+  {id:'6879215',  name:'소불고기 황금레시피',     cat:'구이', emoji:'🥩'},
+  {id:'6915139',  name:'백종원 수육',             cat:'메인', emoji:'🥩'},
+  {id:'6889570',  name:'돼지고기 김치찜',         cat:'찜',   emoji:'🥘'},
+  {id:'6880798',  name:'안동찜닭 황금레시피',     cat:'찜',   emoji:'🍗'},
+  {id:'6934624',  name:'백종원 돼지갈비찜',       cat:'찜',   emoji:'🥩'},
+  {id:'6879533',  name:'잡채 황금레시피',         cat:'메인', emoji:'🍝'},
+  {id:'6953648',  name:'잡채 황금레시피 2',       cat:'메인', emoji:'🍝'},
+  {id:'6960485',  name:'양송이칠리탕수',          cat:'메인', emoji:'🍄'},
+  {id:'6872350',  name:'폭탄 계란찜',             cat:'반찬', emoji:'🥚'},
+  {id:'6948688',  name:'중탕 달걀찜',             cat:'반찬', emoji:'🥚'},
+  {id:'6939543',  name:'에그치즈토스트',          cat:'간식', emoji:'🍞'},
+  {id:'6938068',  name:'계란말이케이크',          cat:'간식', emoji:'🥚'},
+  {id:'6966065',  name:'우삼겹 덮밥 규동',        cat:'밥',   emoji:'🥩'},
+  {id:'6952286',  name:'청경채 새우덮밥',         cat:'밥',   emoji:'🍤'},
+  {id:'6933760',  name:'팽이버섯 덮밥',           cat:'밥',   emoji:'🍄'},
+  {id:'6911743',  name:'바삭 김치전',             cat:'부침', emoji:'🥞'},
+  {id:'6960298',  name:'독일식 감자전',           cat:'부침', emoji:'🥔'},
+  {id:'6853815',  name:'시원한 오이냉국',         cat:'국',   emoji:'🥒'},
+];
+
+// ══ STATE ══
+let curDate = new Date(), selKey = null, recsOffset = 0;
+const mst = {
+  breakfast:{type:'home',text:'',homeUrl:'',place:'',url:''},
+  lunch:    {type:'home',text:'',homeUrl:'',place:'',url:''},
+  dinner:   {type:'home',text:'',homeUrl:'',place:'',url:''}
+};
+
+const meals = JSON.parse(localStorage.getItem('meals2')||'{}');
+try {
+  const old = JSON.parse(localStorage.getItem('meals')||'{}');
+  Object.keys(old).forEach(k=>{
+    if(!meals[k]){
+      const v=old[k];
+      const norm=s=>typeof s==='string'?{type:'home',text:s,place:'',url:''}:s;
+      meals[k]={breakfast:norm(v.breakfast),lunch:norm(v.lunch),dinner:norm(v.dinner)};
     }
-    
-    var ss = SpreadsheetApp.openById(spreadsheetId);
-    var sheet = ss.getSheetByName('Data');
-    
-    if (!sheet) {
-      sheet = ss.insertSheet('Data');
+  });
+} catch(e){}
+
+let favorites = JSON.parse(localStorage.getItem('favorites')||'[]');
+try {
+  const oldLinks = JSON.parse(localStorage.getItem('savedLinks')||'[]');
+  if(oldLinks.length && !favorites.length){
+    oldLinks.forEach(lk=>favorites.push({...lk, group:'toTry'}));
+    localStorage.setItem('favorites', JSON.stringify(favorites));
+  }
+} catch(e){}
+
+function saveM()    { localStorage.setItem('meals2', JSON.stringify(meals)); syncToSheet(); }
+function saveFavs() { localStorage.setItem('favorites', JSON.stringify(favorites)); syncToSheet(); }
+
+// ══ CALENDAR ══
+function renderCal() {
+  const yr=curDate.getFullYear(), mo=curDate.getMonth();
+  document.getElementById('cal-title').textContent=`${yr}년 ${mo+1}월`;
+  const grid=document.getElementById('cal-grid'); grid.innerHTML='';
+  const fd=new Date(yr,mo,1).getDay(), days=new Date(yr,mo+1,0).getDate();
+  const td=new Date();
+  for(let i=0;i<fd;i++){const e=document.createElement('div');e.className='cc empty';grid.appendChild(e);}
+  for(let d=1;d<=days;d++){
+    const key=`${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow=(fd+d-1)%7;
+    const cc=document.createElement('div');
+    cc.className='cc'+(dow===0?' sun':'')+(dow===6?' sat':'')+
+      (yr===td.getFullYear()&&mo===td.getMonth()&&d===td.getDate()?' today':'')+
+      (key===selKey?' sel':'');
+    const sp=document.createElement('span');sp.textContent=d;cc.appendChild(sp);
+    const m=meals[key];
+    if(m&&(gt(m.breakfast)||gt(m.lunch)||gt(m.dinner))){
+      cc.classList.add('has-meal');
+      const dots=document.createElement('div');dots.className='mdots';
+      if(gt(m.breakfast))dots.innerHTML+='<div class="md md-b"></div>';
+      if(gt(m.lunch))    dots.innerHTML+='<div class="md md-l"></div>';
+      if(gt(m.dinner))   dots.innerHTML+='<div class="md md-d"></div>';
+      cc.appendChild(dots);
     }
-    
-    if (action === 'save') {
-      sheet.clearContents();
-      sheet.getRange('A1').setValue(JSON.stringify(data));
-      return createJsonResponse({
-        result: 'success',
-        message: 'Data saved successfully'
-      });
+    cc.onclick=()=>selDay(yr,mo,d,key);
+    grid.appendChild(cc);
+  }
+}
+function gt(s){if(!s)return'';return typeof s==='string'?s:(s.type==='out'?s.place:s.text);}
+function changeMonth(dir){curDate.setMonth(curDate.getMonth()+dir);renderCal();}
+
+function selDay(yr,mo,d,key){
+  selKey=key; renderCal();
+  const dp=document.getElementById('dp');
+  dp.style.display='block';
+  const ns=['일','월','화','수','목','금','토'];
+  document.getElementById('dp-title').textContent=`${mo+1}월 ${d}일 (${ns[new Date(yr,mo,d).getDay()]}) 식단`;
+  const sv=meals[key]||{};
+  ['breakfast','lunch','dinner'].forEach(sl=>{
+    const v=sv[sl]||{type:'home',text:'',homeUrl:'',place:'',url:''};
+    mst[sl]={type:v.type||'home',text:v.text||'',homeUrl:v.homeUrl||'',place:v.place||'',url:v.url||''};
+    applyType(sl,mst[sl].type);
+    document.getElementById(`txt-${sl}`).value=v.text||'';
+    document.getElementById(`pl-${sl}`).value=v.place||'';
+    document.getElementById(`url-${sl}`).value=v.url||'';
+    updOpen(sl,v.url||'');
+    // URL 토글 상태 복원
+    const urlRow=document.getElementById(`home-url-row-${sl}`);
+    const urlToggle=document.getElementById(`home-url-toggle-${sl}`);
+    document.getElementById(`home-url-${sl}`).value=v.homeUrl||'';
+    updHomeOpen(sl,v.homeUrl||'');
+    if(urlRow&&urlToggle){
+      if(v.homeUrl){
+        urlRow.style.display=''; urlToggle.textContent='🔗 링크 접기';
+      } else {
+        urlRow.style.display='none'; urlToggle.textContent='🔗 링크 추가';
+      }
     }
-    
-    return createJsonResponse({
-      result: 'error',
-      message: 'Invalid action'
-    });
-  } catch (error) {
-    return createJsonResponse({
-      result: 'error',
-      message: 'Error: ' + error.toString()
-    });
+  });
+  // 모바일: day panel로 스크롤
+  if(window.innerWidth<=768){
+    setTimeout(()=>dp.scrollIntoView({behavior:'smooth',block:'nearest'}),80);
   }
 }
 
-function createJsonResponse(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
+function applyType(sl,type){
+  document.getElementById(`home-${sl}`).style.display=type==='home'?'':'none';
+  document.getElementById(`out-${sl}`).style.display=type==='out'?'':'none';
+  const blk=document.getElementById(`blk-${sl}`);
+  blk.querySelectorAll('.tb').forEach((b,i)=>b.classList.toggle('on',(i===0&&type==='home')||(i===1&&type==='out')));
+  mst[sl].type=type;
 }
-            </pre>
-            <input type="text" id="modalSpreadsheetId" placeholder="스프레드시트 ID" style="width: 100%; padding: 10px; margin: 10px 0; border: 2px solid #eee; border-radius: 8px;">
-            <input type="text" id="modalScriptUrl" placeholder="Google Apps Script 웹앱 URL" style="width: 100%; padding: 10px; margin: 10px 0; border: 2px solid #eee; border-radius: 8px;">
-            <div class="modal-buttons">
-                <button class="btn btn-primary" onclick="saveConfigFromModal()">저장</button>
-                <button class="btn btn-secondary" onclick="closeConfigModal()">취소</button>
-            </div>
+function setType(sl,type){applyType(sl,type);}
+
+function updOpen(sl,url){
+  const a=document.getElementById(`opn-${sl}`);
+  if(!a)return;
+  const ok=url&&url.startsWith('http');
+  a.href=ok?url:'#'; a.style.opacity=ok?'1':'.4'; a.style.pointerEvents=ok?'auto':'none';
+}
+function updHomeOpen(sl,url){
+  const a=document.getElementById(`home-opn-${sl}`);
+  if(!a)return;
+  const ok=url&&url.startsWith('http');
+  a.href=ok?url:'#'; a.style.opacity=ok?'1':'.4'; a.style.pointerEvents=ok?'auto':'none';
+}
+function toggleHomeUrl(sl){
+  const row=document.getElementById(`home-url-row-${sl}`);
+  const btn=document.getElementById(`home-url-toggle-${sl}`);
+  const vis=row.style.display!=='none';
+  row.style.display=vis?'none':'';
+  btn.textContent=vis?'🔗 링크 추가':'🔗 링크 접기';
+  if(!vis) setTimeout(()=>document.getElementById(`home-url-${sl}`).focus(),50);
+}
+function smap(sl,svc){
+  const nm=document.getElementById(`pl-${sl}`).value.trim();
+  if(!nm){toast('음식점 이름을 먼저 입력해 주세요 🏠');return;}
+  const q=encodeURIComponent(nm);
+  const u={naver:`https://map.naver.com/v5/search/${q}`,kakao:`https://map.kakao.com/?q=${q}`,google:`https://www.google.com/maps/search/${q}`};
+  window.open(u[svc],'_blank');
+}
+function saveMeal(){
+  if(!selKey)return;
+  const d={};
+  ['breakfast','lunch','dinner'].forEach(sl=>{
+    const type=mst[sl].type;
+    const text=document.getElementById(`txt-${sl}`).value.trim();
+    const homeUrl=document.getElementById(`home-url-${sl}`).value.trim();
+    const place=document.getElementById(`pl-${sl}`).value.trim();
+    const url=document.getElementById(`url-${sl}`).value.trim();
+    if(type==='home'&&text) d[sl]={type:'home',text,homeUrl,place:'',url:''};
+    else if(type==='out'&&place) d[sl]={type:'out',text:'',homeUrl:'',place,url};
+    else d[sl]=null;
+  });
+  if(Object.values(d).some(Boolean)) meals[selKey]=d;
+  else delete meals[selKey];
+  saveM(); renderCal(); toast('저장했어요! ✅');
+}
+function qs(sl){
+  const v=document.getElementById(`txt-${sl}`).value.trim();
+  if(v) document.getElementById('sq').value=v;
+  document.getElementById('sq').focus();
+  document.getElementById('sq').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+// ══ SEARCH ══
+const PLATFORMS=[
+  {key:'recipe', icon:'🍲', label:'만개의레시피', sub:'요리 전문 사이트', url:q=>`https://www.10000recipe.com/recipe/list.html?q=${q}`},
+  {key:'youtube',icon:'▶️', label:'유튜브',       sub:'영상 레시피',     url:q=>`https://www.youtube.com/results?search_query=${q}`},
+  {key:'web',    icon:'🔍', label:'구글 검색',    sub:'전체 검색',       url:q=>`https://www.google.com/search?q=${q}`},
+];
+function doSearch(){
+  const raw=document.getElementById('sq').value.trim();
+  if(!raw){toast('검색어를 입력해 주세요 🔍');return;}
+  const q=encodeURIComponent(raw+' 레시피');
+  const wrap=document.getElementById('results-wrap');
+  const list=document.getElementById('results-list');
+  document.getElementById('results-label').textContent=`"${raw} 레시피" 검색 결과`;
+  list.innerHTML='';
+  PLATFORMS.forEach(p=>{
+    const url=p.url(q);
+    const div=document.createElement('div');div.className='result-item';
+    div.innerHTML=`
+      <div class="ri-icon">${p.icon}</div>
+      <div class="ri-info">
+        <div class="ri-name">${p.label} — <span style="font-weight:500">${escH(raw)} 레시피</span></div>
+        <div class="ri-url">${p.sub}</div>
+      </div>
+      <div class="ri-btns">
+        <a class="ri-open" href="${url}" target="_blank">열기 ↗</a>
+        <button class="ri-save" onclick="saveFromResult('${p.label}에서 ${escH(raw)} 레시피','${url}','${p.key}')">★ 저장</button>
+      </div>`;
+    list.appendChild(div);
+  });
+  wrap.style.display='';
+  wrap.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ══ LINK UTILS ══
+function detectPlatform(url){
+  if(/youtube\.com|youtu\.be/.test(url)) return 'youtube';
+  if(/instagram\.com/.test(url)) return 'instagram';
+  if(/naver\.com/.test(url)) return 'naver';
+  if(/tiktok\.com/.test(url)) return 'tiktok';
+  if(/10000recipe|haemukja|mangchi|cookingna/.test(url)) return 'recipe';
+  return 'web';
+}
+const PL_ICONS={youtube:'▶️',instagram:'📸',naver:'📗',tiktok:'🎵',recipe:'🍳',web:'🔗'};
+const PL_NAMES={youtube:'유튜브',instagram:'인스타',naver:'네이버',tiktok:'틱톡',recipe:'레시피',web:'웹'};
+function getYTThumb(url){
+  const m=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+  return m?`https://img.youtube.com/vi/${m[1]}/mqdefault.jpg`:null;
+}
+
+// ══ FAVORITES ══
+let pasteGroup='toTry';
+function setPasteGroup(g,btn){
+  pasteGroup=g;
+  document.querySelectorAll('.pg-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function saveFavorite(title,url,platform,group){
+  group=group||'toTry';
+  platform=platform||detectPlatform(url);
+  favorites.unshift({id:Date.now(),title,url,platform,group,date:new Date().toLocaleDateString('ko-KR')});
+  if(favorites.length>200) favorites=favorites.slice(0,200);
+  saveFavs(); renderFavorites();
+}
+function saveFromResult(title,url,platform){
+  saveFavorite(title,url,platform,'toTry');
+  toast('📌 인증할 레시피에 저장됐어요!');
+}
+function pasteAndSave(){
+  const url=document.getElementById('paste-url').value.trim();
+  if(!url){toast('URL을 붙여넣어 주세요');return;}
+  if(!url.startsWith('http')){toast('올바른 URL을 입력해 주세요 (http로 시작)');return;}
+  const pl=detectPlatform(url);
+  let title=document.getElementById('paste-title').value.trim();
+  if(!title){
+    try{title=`${PL_NAMES[pl]||new URL(url).hostname.replace('www.','')} 레시피`;}
+    catch(e){title=`${PL_NAMES[pl]||'웹'} 레시피`;}
+  }
+  saveFavorite(title,url,pl,pasteGroup);
+  document.getElementById('paste-url').value='';
+  document.getElementById('paste-title').value='';
+  toast(pasteGroup==='verified'?'✅ 인증된 레시피에 저장됐어요!':'📌 인증할 레시피에 저장됐어요!');
+}
+function moveFav(id){
+  const fav=favorites.find(f=>f.id===id);
+  if(!fav)return;
+  fav.group=fav.group==='toTry'?'verified':'toTry';
+  saveFavs(); renderFavorites();
+  toast(fav.group==='verified'?'✅ 인증된 레시피로 이동했어요!':'📌 인증할 레시피로 이동했어요!');
+}
+function delFav(id){
+  favorites=favorites.filter(f=>f.id!==id);
+  saveFavs(); renderFavorites();
+}
+let favTab='toTry';
+function setFavTab(group,btn){
+  favTab=group;
+  document.querySelectorAll('.fav-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderFavorites();
+}
+function renderFavorites(){
+  const el=document.getElementById('fav-list');
+  const list=favorites.filter(f=>f.group===favTab);
+  const total=favorites.length;
+  document.getElementById('fav-count').textContent=total?`(${total}개)`:'';
+  if(!list.length){
+    el.innerHTML=`<div class="saved-empty">${favTab==='toTry'?'아직 없어요<br>검색 후 ★ 저장을 눌러 추가하세요':'아직 없어요<br>인증할 레시피에서 ✅ 인증됨을 눌러 옮기세요'}</div>`;
+    return;
+  }
+  el.innerHTML='';
+  const ul=document.createElement('div');ul.className='saved-list';
+  list.forEach(fav=>{
+    const thumb=fav.platform==='youtube'?getYTThumb(fav.url):null;
+    const thumbHtml=thumb
+      ?`<div class="sl-thumb"><img src="${thumb}" onerror="this.parentElement.textContent='${PL_ICONS[fav.platform]||'🔗'}'"></div>`
+      :`<div class="sl-thumb">${PL_ICONS[fav.platform]||'🔗'}</div>`;
+    const moveLabel=favTab==='toTry'?'✅ 인증됨':'📌 나중에';
+    const item=document.createElement('div');item.className='sl-item';
+    item.innerHTML=`
+      ${thumbHtml}
+      <div class="sl-info">
+        <div class="sl-title">${escH(fav.title)}</div>
+        <div class="sl-url">${escH(fav.url)}</div>
+        <div class="sl-meta">
+          <span class="pl-badge pl-${fav.platform}">${PL_NAMES[fav.platform]||'웹'}</span>
+          <span class="sl-date">${fav.date}</span>
         </div>
-    </div>
+      </div>
+      <div class="sl-btns">
+        <a class="sl-open" href="${escH(fav.url)}" target="_blank">열기 ↗</a>
+        <button class="sl-add" onclick="moveFav(${fav.id})">${moveLabel}</button>
+        <button class="sl-del" onclick="delFav(${fav.id})">삭제</button>
+      </div>`;
+    ul.appendChild(item);
+  });
+  el.appendChild(ul);
+}
+function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-    <script>
-        // Data storage
-        let data = {
-            months: {},
-            currentMonth: getCurrentMonthKey(),
-            savingsGoal: 0,
-            title: '💑 지민쀼 가계부'
-        };
+// ══ DAILY RECIPES ══
+function seededShuffle(arr,seed){
+  const a=[...arr]; let s=seed>>>0;
+  function rng(){s=Math.imul(s^s>>>16,0x45d9f3b);s=Math.imul(s^s>>>16,0x45d9f3b);return((s^s>>>16)>>>0)/4294967296;}
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+function getDailyOrder(){
+  const d=new Date();
+  const seed=parseInt(`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`);
+  return seededShuffle([...RECIPE_POOL],seed);
+}
+function shuffleRecs(){recsOffset=(recsOffset+6)%RECIPE_POOL.length;renderRecs();}
+function renderRecs(){
+  const el=document.getElementById('recs-list');if(!el)return;
+  const daily=getDailyOrder();
+  el.innerHTML='';
+  for(let i=0;i<6;i++){
+    const r=daily[(recsOffset+i)%daily.length];
+    const div=document.createElement('div');div.className='rec-item';
+    div.innerHTML=`
+      <span class="rec-emoji">${r.emoji}</span>
+      <div class="rec-info">
+        <div class="rec-name">${escH(r.name)}</div>
+        <span class="rec-cat-badge">${r.cat}</span>
+      </div>
+      <div class="rec-actions">
+        <a class="rec-open" href="https://www.10000recipe.com/recipe/${r.id}" target="_blank">레시피 ↗</a>
+        <button class="rec-add" onclick="addToMeal('${r.name.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">＋ 식단</button>
+      </div>`;
+    el.appendChild(div);
+  }
+}
+function addToMeal(name){
+  if(!selKey){toast('달력에서 날짜를 먼저 선택해 주세요 📅');return;}
+  const m=meals[selKey]||{};
+  const slot=!gt(m.breakfast)?'breakfast':!gt(m.lunch)?'lunch':!gt(m.dinner)?'dinner':'lunch';
+  m[slot]={type:'home',text:name,homeUrl:'',place:'',url:''};
+  meals[selKey]=m; saveM(); renderCal();
+  if(document.getElementById('dp').style.display!=='none'){
+    applyType(slot,'home');
+    document.getElementById(`txt-${slot}`).value=name;
+    document.getElementById(`home-url-${slot}`).value='';
+    updHomeOpen(slot,'');
+    const urlRow=document.getElementById(`home-url-row-${slot}`);
+    const urlToggle=document.getElementById(`home-url-toggle-${slot}`);
+    if(urlRow&&urlToggle){urlRow.style.display='none';urlToggle.textContent='🔗 링크 추가';}
+  }
+  toast(`${name} 식단에 추가됐어요 🎉`);
+}
 
-        // Cloud sync config - Default values pre-configured
-        let cloudConfig = {
-            spreadsheetId: '',
-            scriptUrl: ''
-        };
+// ══ TOAST ══
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2500);
+}
 
-        // Custom input state
-        let customInputs = {
-            income: false,
-            fixed: false,
-            loan: false,
-            variable: false,
-            savings: false
-        };
-
-        function getCurrentMonthKey() {
-            const now = new Date();
-            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        }
-
-        function getEmptyMonthData() {
-            return {
-                income: [],
-                fixed: [],
-                loan: [],
-                variable: [],
-                savings: [],
-                husbandAllowance: 0,
-                wifeAllowance: 0
-            };
-        }
-
-        function isMonthDataEmpty(monthData) {
-            if (!monthData) return true;
-            if (monthData.income && monthData.income.length > 0) return false;
-            if (monthData.fixed && monthData.fixed.length > 0) return false;
-            if (monthData.loan && monthData.loan.length > 0) return false;
-            if (monthData.variable && monthData.variable.length > 0) return false;
-            if (monthData.savings && monthData.savings.length > 0) return false;
-            if (monthData.husbandAllowance > 0) return false;
-            if (monthData.wifeAllowance > 0) return false;
-            return true;
-        }
-
-        function loadData() {
-            const saved = localStorage.getItem('familyBudget');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                data = parsed;
-                if (data.months) {
-                    Object.keys(data.months).forEach(key => {
-                        if (isMonthDataEmpty(data.months[key])) {
-                            delete data.months[key];
-                        }
-                    });
-                }
-            }
-            if (!data.months) data.months = {};
-            if (!data.months[data.currentMonth]) {
-                data.months[data.currentMonth] = getEmptyMonthData();
-            }
-            // Set default title if not exists
-            if (!data.title) {
-                data.title = '💑 지민쀼 가계부';
-            }
-            
-            // Load cloud config
-            const savedConfig = localStorage.getItem('familyBudgetCloudConfig');
-            if (savedConfig) {
-                cloudConfig = JSON.parse(savedConfig);
-            }
-            
-            // Update input fields with saved config
-            const spreadsheetIdEl = document.getElementById('spreadsheetId');
-            const scriptUrlEl = document.getElementById('scriptUrl');
-            const modalSpreadsheetIdEl = document.getElementById('modalSpreadsheetId');
-            const modalScriptUrlEl = document.getElementById('modalScriptUrl');
-            
-            if (spreadsheetIdEl) spreadsheetIdEl.value = cloudConfig.spreadsheetId || '';
-            if (scriptUrlEl) scriptUrlEl.value = cloudConfig.scriptUrl || '';
-            if (modalSpreadsheetIdEl) modalSpreadsheetIdEl.value = cloudConfig.spreadsheetId || '';
-            if (modalScriptUrlEl) modalScriptUrlEl.value = cloudConfig.scriptUrl || '';
-            
-            // Check connection status
-            if (cloudConfig.spreadsheetId && cloudConfig.scriptUrl) {
-                updateSyncStatus('connected', '클라우드 연결됨');
-            }
-        }
-
-        function saveData() {
-            Object.keys(data.months).forEach(key => {
-                if (isMonthDataEmpty(data.months[key])) {
-                    delete data.months[key];
-                }
-            });
-            localStorage.setItem('familyBudget', JSON.stringify(data));
-        }
-
-        function formatWon(amount) {
-            return '₩' + Number(amount).toLocaleString();
-        }
-
-        function formatInput(input) {
-            let value = input.value.replace(/[^0-9-]/g, '');
-            if (value === '' || value === '-') {
-                input.value = '';
-                return;
-            }
-            let num = parseInt(value);
-            if (!isNaN(num)) {
-                input.value = num.toLocaleString();
-            }
-        }
-
-        function selectInput(input) {
-            input.select();
-        }
-
-        function parseInput(value) {
-            if (!value) return 0;
-            return parseInt(value.replace(/[^0-9-]/g, '')) || 0;
-        }
-
-        function generateId() {
-            return Date.now() + Math.random().toString(36).substr(2, 9);
-        }
-
-        function getCurrentData() {
-            if (!data.months[data.currentMonth]) {
-                data.months[data.currentMonth] = getEmptyMonthData();
-            }
-            if (!data.months[data.currentMonth].savings) {
-                data.months[data.currentMonth].savings = [];
-            }
-            return data.months[data.currentMonth];
-        }
-
-        function handleSelectChange(type, value) {
-            const customInput = document.getElementById(`${type}Name`);
-            if (value === '기타') {
-                customInput.classList.add('active');
-                customInput.focus();
-                customInputs[type] = true;
-            } else {
-                customInput.classList.remove('active');
-                customInput.value = '';
-                customInputs[type] = false;
-            }
-        }
-
-        function handleEnter(event, type) {
-            if (event.key === 'Enter') {
-                addItem(type);
-            }
-        }
-
-        function handleEnterAllowance(event, person) {
-            if (event.key === 'Enter') {
-                setAllowance(person);
-            }
-        }
-
-        function addItem(type) {
-            const selectEl = document.getElementById(`${type}Select`);
-            const nameInput = document.getElementById(`${type}Name`);
-            const amountInput = document.getElementById(`${type}Amount`);
-            
-            let name = '';
-            if (customInputs[type]) {
-                name = nameInput.value.trim();
-            } else {
-                name = selectEl.value;
-            }
-            
-            const amount = parseInput(amountInput.value);
-            
-            if (!name || isNaN(amount) || amount <= 0) {
-                alert('항목과 금액을 올바르게 입력해주세요.');
-                return;
-            }
-            
-            const currentData = getCurrentData();
-            currentData[type].push({
-                id: generateId(),
-                name: name,
-                amount: amount
-            });
-            
-            selectEl.value = '';
-            nameInput.value = '';
-            amountInput.value = '';
-            customInputs[type] = false;
-            document.getElementById(`${type}Name`).classList.remove('active');
-            
-            saveData();
-            renderAll();
-        }
-
-        function removeItem(type, id) {
-            const currentData = getCurrentData();
-            currentData[type] = currentData[type].filter(item => item.id !== id);
-            saveData();
-            renderAll();
-        }
-
-        function editItem(type, id) {
-            const currentData = getCurrentData();
-            // 수정할 항목 찾기
-            const item = currentData[type].find(item => item.id === id);
-            
-            if (!item) return;
-            
-            // 기존 금액을 보여주며 새로운 금액 입력 받기
-            const newAmountStr = prompt(`[${item.name}] 항목의 새로운 금액을 입력해주세요.\n(숫자만 입력하거나 콤마를 포함해도 됩니다)`, item.amount);
-            
-            // 사용자가 '취소'를 누른 경우 종료
-            if (newAmountStr === null) return; 
-            
-            // 입력받은 값을 숫자로 변환 (기존 parseInput 함수 활용)
-            const newAmount = parseInput(newAmountStr);
-            
-            if (isNaN(newAmount) || newAmount <= 0) {
-                alert('올바른 금액을 입력해주세요.');
-                return;
-            }
-            
-            // 새 금액으로 업데이트 후 저장 및 화면 새로고침
-            item.amount = newAmount;
-            saveData();
-            renderAll();
-        }
-
-        function setAllowance(person) {
-            const input = document.getElementById(`${person}Allowance`);
-            const amount = parseInput(input.value);
-            
-            if (isNaN(amount) || amount < 0) {
-                alert('올바른 금액을 입력해주세요.');
-                return;
-            }
-            
-            const currentData = getCurrentData();
-            if (person === 'husband') {
-                currentData.husbandAllowance = amount;
-            } else {
-                currentData.wifeAllowance = amount;
-            }
-            
-            input.value = '';
-            saveData();
-            renderAll();
-        }
-
-        function resetAllowance(person) {
-            if (!confirm(`${person === 'husband' ? '남편' : '아내'} 용돈을 초기화하시겠습니까?`)) {
-                return;
-            }
-            
-            const currentData = getCurrentData();
-            if (person === 'husband') {
-                currentData.husbandAllowance = 0;
-            } else {
-                currentData.wifeAllowance = 0;
-            }
-            
-            saveData();
-            renderAll();
-        }
-
-        function switchTab(person) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            if (person === 'husband') {
-                document.querySelector('[onclick="switchTab(\'husband\')"]').classList.add('active');
-                document.getElementById('husbandTab').classList.add('active');
-            } else {
-                document.querySelector('[onclick="switchTab(\'wife\')"]').classList.add('active');
-                document.getElementById('wifeTab').classList.add('active');
-            }
-        }
-
-        function calculateTotals(currentData) {
-            const incomeTotal = currentData.income.reduce((sum, item) => sum + item.amount, 0);
-            const fixedTotal = currentData.fixed.reduce((sum, item) => sum + item.amount, 0);
-            const loanTotal = currentData.loan.reduce((sum, item) => sum + item.amount, 0);
-            const variableTotal = currentData.variable.reduce((sum, item) => sum + item.amount, 0);
-            const allowanceTotal = currentData.husbandAllowance + currentData.wifeAllowance;
-            const savingsTotal = currentData.savings.reduce((sum, item) => sum + item.amount, 0);
-            
-            const totalExpense = fixedTotal + loanTotal + variableTotal + allowanceTotal + savingsTotal;
-            const balance = incomeTotal - totalExpense;
-            
-            let savingsRate = 0;
-            if (incomeTotal > 0) {
-                savingsRate = (savingsTotal / incomeTotal) * 100;
-            }
-            
-            return {
-                incomeTotal,
-                fixedTotal,
-                loanTotal,
-                variableTotal,
-                allowanceTotal,
-                savingsTotal,
-                totalExpense,
-                balance,
-                savingsRate
-            };
-        }
-
-        function renderList(type, containerId, totalId) {
-            const container = document.getElementById(containerId);
-            const totalEl = document.getElementById(totalId);
-            const currentData = getCurrentData();
-            
-            container.innerHTML = '';
-            let total = 0;
-            
-currentData[type].forEach(item => {
-                total += item.amount;
-                const div = document.createElement('div');
-                div.className = 'item';
-                div.innerHTML = `
-                    <div class="item-info">
-                        <div class="item-name">${item.name}</div>
-                    </div>
-                    <div class="item-amount">${formatWon(item.amount)}</div>
-                    <div class="item-actions">
-                        <!-- 아래 한 줄(수정 버튼)을 추가하세요 -->
-                        <button class="btn btn-edit" onclick="editItem('${type}', '${item.id}')">수정</button>
-                        <button class="btn btn-danger" onclick="removeItem('${type}', '${item.id}')">삭제</button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-            
-            totalEl.textContent = formatWon(total);
-            return total;
-        }
-
-        function calculateYearTotals(year) {
-            let incomeTotal = 0;
-            let fixedTotal = 0;
-            let loanTotal = 0;
-            let variableTotal = 0;
-            let allowanceTotal = 0;
-            let savingsTotal = 0;
-            
-            for (let month = 1; month <= 12; month++) {
-                const monthKey = `${year}-${String(month).padStart(2, '0')}`;
-                if (data.months[monthKey]) {
-                    const monthData = data.months[monthKey];
-                    incomeTotal += monthData.income.reduce((sum, item) => sum + item.amount, 0);
-                    fixedTotal += monthData.fixed.reduce((sum, item) => sum + item.amount, 0);
-                    loanTotal += monthData.loan.reduce((sum, item) => sum + item.amount, 0);
-                    variableTotal += monthData.variable.reduce((sum, item) => sum + item.amount, 0);
-                    allowanceTotal += monthData.husbandAllowance + monthData.wifeAllowance;
-                    savingsTotal += monthData.savings.reduce((sum, item) => sum + item.amount, 0);
-                }
-            }
-            
-            const totalExpense = fixedTotal + loanTotal + variableTotal + allowanceTotal + savingsTotal;
-            const balance = incomeTotal - totalExpense;
-            
-            let savingsRate = 0;
-            if (incomeTotal > 0) {
-                savingsRate = (savingsTotal / incomeTotal) * 100;
-            }
-            
-            return {
-                incomeTotal,
-                fixedTotal,
-                loanTotal,
-                variableTotal,
-                allowanceTotal,
-                savingsTotal,
-                totalExpense,
-                balance,
-                savingsRate
-            };
-        }
-
-        function renderSavingsList() {
-            const container = document.getElementById('savingsList');
-            const totalEl = document.getElementById('savingsTotal');
-            const currentData = getCurrentData();
-            
-            container.innerHTML = '';
-            let total = 0;
-            
-currentData.savings.forEach(item => {
-                total += item.amount;
-                const div = document.createElement('div');
-                div.className = 'savings-item';
-                div.innerHTML = `
-                    <div class="savings-item-info">
-                        <div class="savings-item-name">${item.name}</div>
-                    </div>
-                    <div class="savings-item-amount">${formatWon(item.amount)}</div>
-                    <div class="savings-item-actions">
-                        <!-- 아래 한 줄(수정 버튼)을 추가하세요 -->
-                        <button class="btn btn-edit" onclick="editItem('savings', '${item.id}')">수정</button>
-                        <button class="btn btn-danger" onclick="removeItem('savings', '${item.id}')">삭제</button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-            
-            totalEl.textContent = formatWon(total);
-        }
-
-        function renderAll() {
-            const currentData = getCurrentData();
-            const totals = calculateTotals(currentData);
-            
-            // Update title
-            document.getElementById('budgetTitle').innerHTML = 
-                data.title + ' <span class="edit-title-icon">✏️</span>';
-            document.title = data.title;
-            
-            document.getElementById('summaryIncome').textContent = formatWon(totals.incomeTotal);
-            document.getElementById('summaryExpense').textContent = formatWon(totals.totalExpense);
-            document.getElementById('summaryBalance').textContent = formatWon(totals.balance);
-            
-            const savingsEl = document.getElementById('summarySavings');
-            savingsEl.textContent = totals.savingsRate.toFixed(1) + '%';
-            if (totals.savingsRate < 0) {
-                savingsEl.style.color = '#c62828';
-            } else {
-                savingsEl.style.color = '#ef6c00';
-            }
-            
-            document.getElementById('summaryFixed').textContent = formatWon(totals.fixedTotal);
-            document.getElementById('summaryLoan').textContent = formatWon(totals.loanTotal);
-            document.getElementById('summaryAllowance').textContent = formatWon(totals.allowanceTotal);
-            document.getElementById('summaryVariable').textContent = formatWon(totals.variableTotal);
-            
-            renderList('income', 'incomeList', 'incomeTotal');
-            renderList('fixed', 'fixedList', 'fixedTotal');
-            renderList('loan', 'loanList', 'loanTotal');
-            renderList('variable', 'variableList', 'variableTotal');
-            
-            document.getElementById('husbandDisplay').textContent = formatWon(currentData.husbandAllowance);
-            document.getElementById('wifeDisplay').textContent = formatWon(currentData.wifeAllowance);
-            document.getElementById('allowanceTotal').textContent = formatWon(currentData.husbandAllowance + currentData.wifeAllowance);
-            
-            renderSavingsList();
-            
-            document.getElementById('currentSavings').textContent = formatWon(totals.balance);
-            document.getElementById('progressFill').style.width = '0%';
-            document.getElementById('progressText').textContent = '수지 현황';
-            
-            updateMonthSelector();
-            renderHistory();
-            renderYearSummary();
-        }
-
-        function renderYearSummary() {
-            const [currentYear] = data.currentMonth.split('-');
-            const yearTotals = calculateYearTotals(parseInt(currentYear));
-            
-            document.getElementById('yearSummaryTitle').textContent = currentYear + '년';
-            document.getElementById('yearIncome').textContent = formatWon(yearTotals.incomeTotal);
-            document.getElementById('yearExpense').textContent = formatWon(yearTotals.totalExpense);
-            document.getElementById('yearBalance').textContent = formatWon(yearTotals.balance);
-            
-            const yearSavingsEl = document.getElementById('yearSavings');
-            yearSavingsEl.textContent = yearTotals.savingsRate.toFixed(1) + '%';
-            if (yearTotals.savingsRate < 0) {
-                yearSavingsEl.style.color = '#c62828';
-            } else {
-                yearSavingsEl.style.color = '#ef6c00';
-            }
-            
-            document.getElementById('yearFixed').textContent = formatWon(yearTotals.fixedTotal);
-            document.getElementById('yearLoan').textContent = formatWon(yearTotals.loanTotal);
-            document.getElementById('yearAllowance').textContent = formatWon(yearTotals.allowanceTotal);
-            document.getElementById('yearVariable').textContent = formatWon(yearTotals.variableTotal);
-            
-            const tbody = document.getElementById('monthlyTableBody');
-            tbody.innerHTML = '';
-            
-            for (let month = 1; month <= 12; month++) {
-                const monthKey = `${currentYear}-${String(month).padStart(2, '0')}`;
-                const monthData = data.months[monthKey] || getEmptyMonthData();
-                const totals = calculateTotals(monthData);
-                
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${month}월</td>
-                    <td>${formatWon(totals.incomeTotal)}</td>
-                    <td>${formatWon(totals.totalExpense)}</td>
-                    <td class="${totals.balance >= 0 ? 'positive' : 'negative'}">${formatWon(totals.balance)}</td>
-                    <td class="${totals.savingsRate >= 0 ? 'positive' : 'negative'}">${totals.savingsRate.toFixed(1)}%</td>
-                `;
-                tbody.appendChild(tr);
-            }
-        }
-
-        function initMonthSelectors() {
-            const yearSelect = document.getElementById('yearSelect');
-            const monthSelect = document.getElementById('monthSelect');
-            
-            const currentYear = new Date().getFullYear();
-            const startYear = currentYear - 2;
-            const endYear = currentYear + 2;
-            
-            for (let year = startYear; year <= endYear; year++) {
-                const option = document.createElement('option');
-                option.value = year;
-                option.textContent = year + '년';
-                yearSelect.appendChild(option);
-            }
-            
-            for (let month = 1; month <= 12; month++) {
-                const option = document.createElement('option');
-                option.value = String(month).padStart(2, '0');
-                option.textContent = month + '월';
-                monthSelect.appendChild(option);
-            }
-        }
-
-        function updateMonthSelector() {
-            const [year, month] = data.currentMonth.split('-');
-            document.getElementById('yearSelect').value = year;
-            document.getElementById('monthSelect').value = month;
-        }
-
-        function selectYear() {
-            const year = document.getElementById('yearSelect').value;
-            const month = document.getElementById('monthSelect').value;
-            selectMonthKey(`${year}-${month}`);
-        }
-
-        function selectMonth() {
-            const year = document.getElementById('yearSelect').value;
-            const month = document.getElementById('monthSelect').value;
-            selectMonthKey(`${year}-${month}`);
-        }
-
-        function changeYear(delta) {
-            const [currentYear, currentMonth] = data.currentMonth.split('-');
-            const newYear = parseInt(currentYear) + delta;
-            selectMonthKey(`${newYear}-${currentMonth}`);
-        }
-
-        function changeMonth(delta) {
-            const [currentYear, currentMonth] = data.currentMonth.split('-');
-            let newYear = parseInt(currentYear);
-            let newMonth = parseInt(currentMonth) + delta;
-            
-            if (newMonth > 12) {
-                newMonth = 1;
-                newYear++;
-            } else if (newMonth < 1) {
-                newMonth = 12;
-                newYear--;
-            }
-            
-            selectMonthKey(`${newYear}-${String(newMonth).padStart(2, '0')}`);
-        }
-
-        function selectMonthKey(monthKey) {
-            data.currentMonth = monthKey;
-            if (!data.months[monthKey]) {
-                data.months[monthKey] = getEmptyMonthData();
-            }
-            saveData();
-            renderAll();
-        }
-
-        function copyFromPreviousMonth() {
-            const [currentYear, currentMonth] = data.currentMonth.split('-');
-            let prevYear = parseInt(currentYear);
-            let prevMonth = parseInt(currentMonth) - 1;
-            
-            if (prevMonth < 1) {
-                prevMonth = 12;
-                prevYear--;
-            }
-            
-            const prevMonthKey = `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
-            
-            if (!data.months[prevMonthKey]) {
-                alert('이전 달 데이터가 없습니다.');
-                return;
-            }
-            
-            if (!confirm(`${prevYear}년 ${prevMonth}월 데이터를 복사하시겠습니까?\n변동비용을 제외한 데이터가 복사되며, 현재 달의 데이터는 덮어쓰여집니다.`)) {
-                return;
-            }
-            
-            const prevData = data.months[prevMonthKey];
-            const currentData = getEmptyMonthData();
-            
-            currentData.income = JSON.parse(JSON.stringify(prevData.income));
-            currentData.fixed = JSON.parse(JSON.stringify(prevData.fixed));
-            currentData.loan = JSON.parse(JSON.stringify(prevData.loan));
-            currentData.savings = JSON.parse(JSON.stringify(prevData.savings));
-            currentData.husbandAllowance = prevData.husbandAllowance;
-            currentData.wifeAllowance = prevData.wifeAllowance;
-            
-            data.months[data.currentMonth] = currentData;
-            saveData();
-            renderAll();
-            alert('이전 달 데이터를 복사했습니다. (변동비용 제외)');
-        }
-
-        function resetCurrentMonth() {
-            if (!confirm('이번 달 데이터를 모두 초기화하시겠습니까?')) {
-                return;
-            }
-            
-            data.months[data.currentMonth] = getEmptyMonthData();
-            saveData();
-            renderAll();
-            alert('이번 달 데이터를 초기화했습니다.');
-        }
-
-        function renderHistory() {
-            const container = document.getElementById('historyGrid');
-            container.innerHTML = '';
-            
-            const sortedMonths = Object.keys(data.months).sort().reverse();
-            
-            sortedMonths.forEach(monthKey => {
-                const monthData = data.months[monthKey];
-                const totals = calculateTotals(monthData);
-                const [year, month] = monthKey.split('-');
-                
-                const div = document.createElement('div');
-                div.className = 'history-item' + (monthKey === data.currentMonth ? ' active' : '');
-                div.onclick = () => selectMonthKey(monthKey);
-                div.innerHTML = `
-                    <div class="history-month">${year}년 ${parseInt(month)}월</div>
-                    <div class="history-balance" style="color: ${totals.balance >= 0 ? '#4CAF50' : '#f44336'}">
-                        ${formatWon(totals.balance)}
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        // Title Edit Functions
-        function showTitleEditModal() {
-            document.getElementById('titleInput').value = data.title;
-            document.getElementById('titleEditModal').classList.add('active');
-        }
-
-        function closeTitleEditModal() {
-            document.getElementById('titleEditModal').classList.remove('active');
-        }
-
-        function saveTitle() {
-            const newTitle = document.getElementById('titleInput').value.trim();
-            if (!newTitle) {
-                alert('가계부 이름을 입력해주세요.');
-                return;
-            }
-            data.title = newTitle;
-            saveData();
-            renderAll();
-            closeTitleEditModal();
-            alert('가계부 이름이 변경되었습니다.');
-        }
-
-        // Cloud Sync Functions
-        function updateSyncStatus(status, text) {
-            const indicator = document.getElementById('syncIndicator');
-            const statusText = document.getElementById('syncStatusText');
-            
-            indicator.className = 'sync-status-indicator ' + status;
-            statusText.textContent = text;
-        }
-
-        function showConfigModal() {
-            document.getElementById('modalSpreadsheetId').value = cloudConfig.spreadsheetId || '';
-            document.getElementById('modalScriptUrl').value = cloudConfig.scriptUrl || '';
-            document.getElementById('configModal').classList.add('active');
-        }
-
-        function closeConfigModal() {
-            document.getElementById('configModal').classList.remove('active');
-        }
-
-        function saveConfigFromModal() {
-            cloudConfig.spreadsheetId = document.getElementById('modalSpreadsheetId').value.trim();
-            cloudConfig.scriptUrl = document.getElementById('modalScriptUrl').value.trim();
-            localStorage.setItem('familyBudgetCloudConfig', JSON.stringify(cloudConfig));
-            
-            if (cloudConfig.spreadsheetId && cloudConfig.scriptUrl) {
-                updateSyncStatus('connected', '클라우드 연결됨');
-            } else {
-                updateSyncStatus('disconnected', '로컬 모드');
-            }
-            
-            closeConfigModal();
-            alert('클라우드 설정이 저장되었습니다.');
-        }
-
-        function saveConfig() {
-            cloudConfig.spreadsheetId = document.getElementById('spreadsheetId').value.trim();
-            cloudConfig.scriptUrl = document.getElementById('scriptUrl').value.trim();
-            localStorage.setItem('familyBudgetCloudConfig', JSON.stringify(cloudConfig));
-            
-            if (cloudConfig.spreadsheetId && cloudConfig.scriptUrl) {
-                updateSyncStatus('connected', '클라우드 연결됨');
-            } else {
-                updateSyncStatus('disconnected', '로컬 모드');
-            }
-            
-            alert('클라우드 설정이 저장되었습니다.');
-        }
-
-        async function uploadToCloud() {
-            if (!cloudConfig.spreadsheetId || !cloudConfig.scriptUrl) {
-                alert('클라우드 설정을 먼저 해주세요.');
-                showConfigModal();
-                return;
-            }
-            
-            updateSyncStatus('syncing', '업로드 중...');
-            
-            try {
-                // Use POST method with JSON body
-                const url = cloudConfig.scriptUrl;
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'text/plain;charset=utf-8'
-                    },
-                    body: JSON.stringify({
-                        action: 'save',
-                        spreadsheetId: cloudConfig.spreadsheetId,
-                        data: data
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.result === 'success') {
-                    updateSyncStatus('connected', '클라우드 연결됨');
-                    alert('데이터가 클라우드에 업로드되었습니다.');
-                } else {
-                    throw new Error(result.message || '업로드 실패');
-                }
-                
-            } catch (error) {
-                updateSyncStatus('disconnected', '업로드 실패');
-                alert('업로드 중 오류가 발생했습니다: ' + error.message);
-            }
-        }
-
-        async function downloadFromCloud() {
-            if (!cloudConfig.spreadsheetId || !cloudConfig.scriptUrl) {
-                alert('클라우드 설정을 먼저 해주세요.');
-                showConfigModal();
-                return;
-            }
-            
-            updateSyncStatus('syncing', '다운로드 중...');
-            
-            try {
-                const url = cloudConfig.scriptUrl + '?action=load&spreadsheetId=' + encodeURIComponent(cloudConfig.spreadsheetId);
-                
-                const response = await fetch(url, {
-                    method: 'GET'
-                });
-                
-                const result = await response.json();
-                
-                if (result.result === 'success' && result.data && Object.keys(result.data).length > 0) {
-                    data = result.data;
-                    saveData();
-                    renderAll();
-                    updateSyncStatus('connected', '클라우드 연결됨');
-                    alert('데이터가 클라우드에서 다운로드되었습니다.');
-                } else if (result.result === 'success' && (!result.data || Object.keys(result.data).length === 0)) {
-                    updateSyncStatus('connected', '클라우드 연결됨');
-                    alert('클라우드에 저장된 데이터가 없습니다. 먼저 업로드해주세요.');
-                } else {
-                    throw new Error(result.message || '다운로드 실패');
-                }
-            } catch (error) {
-                updateSyncStatus('disconnected', '다운로드 실패');
-                alert('다운로드 중 오류가 발생했습니다: ' + error.message);
-            }
-        }
-
-        function init() {
-            loadData();
-            initMonthSelectors();
-            renderAll();
-        }
-
-        init();
-    </script>
+// ══ INIT ══
+renderCal(); renderRecs(); renderFavorites();
+const now=new Date();
+const tk=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+selDay(now.getFullYear(),now.getMonth(),now.getDate(),tk);
+// 구글 시트에서 최신 데이터 로드 + 2분마다 자동 갱신
+loadFromSheet();
+setInterval(loadFromSheet, 2*60*1000);
+</script>
 </body>
 </html>
